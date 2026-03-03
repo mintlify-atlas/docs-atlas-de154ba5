@@ -1,0 +1,128 @@
+{
+  "projectType": "sdk-library",
+  "projectName": "ZeroLeaks",
+  "projectDescription": "Autonomous AI security scanner that tests LLM systems for prompt injection and extraction vulnerabilities using multi-agent attack techniques.",
+  "theme": "aspen",
+  "primaryColor": "#DC2626",
+  "lightColor": "#EF4444",
+  "darkColor": "#991B1B",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "installation",
+              "quickstart"
+            ]
+          },
+          {
+            "group": "Core Concepts",
+            "pages": [
+              "concepts/architecture",
+              "concepts/multi-agent-system",
+              "concepts/attack-tree",
+              "concepts/scan-modes"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "guides/cli-usage",
+              "guides/programmatic-api",
+              "guides/configuration",
+              "guides/model-selection",
+              "guides/interpreting-results"
+            ]
+          },
+          {
+            "group": "Attack Techniques",
+            "pages": [
+              "techniques/overview",
+              "techniques/direct-extraction",
+              "techniques/encoding-bypasses",
+              "techniques/persona-attacks",
+              "techniques/social-engineering",
+              "techniques/technical-exploits",
+              "techniques/modern-attacks",
+              "techniques/prompt-injection"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Core API",
+            "pages": [
+              "api/run-security-scan",
+              "api/create-scan-engine",
+              "api/scan-result"
+            ]
+          },
+          {
+            "group": "Agents",
+            "pages": [
+              "api/agents/attacker",
+              "api/agents/evaluator",
+              "api/agents/strategist",
+              "api/agents/mutator",
+              "api/agents/inspector",
+              "api/agents/orchestrator",
+              "api/agents/target"
+            ]
+          },
+          {
+            "group": "Probes",
+            "pages": [
+              "api/probes/overview",
+              "api/probes/categories",
+              "api/probes/sequences"
+            ]
+          },
+          {
+            "group": "Knowledge Base",
+            "pages": [
+              "api/knowledge/techniques",
+              "api/knowledge/payloads",
+              "api/knowledge/exfiltration",
+              "api/knowledge/defense-bypass"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Multi-agent architecture with Tree of Attacks (TAP) exploration",
+    "Modern attack techniques including Crescendo, Many-Shot, Chain-of-Thought Hijacking",
+    "TombRaider pattern for defense fingerprinting and exploitation",
+    "Dual scan modes for system prompt extraction and prompt injection testing",
+    "Configurable models for attacker, target, and evaluator agents",
+    "Research-backed techniques incorporating CVE-documented vulnerabilities",
+    "Comprehensive probe library with 100+ attack templates",
+    "CLI and programmatic API interfaces"
+  ],
+  "publicApiSurface": [
+    "runSecurityScan(systemPrompt, options?)",
+    "createScanEngine(config?)",
+    "createAttacker(config?)",
+    "createEvaluator(config?)",
+    "createStrategist(config?)",
+    "createMutator(config?)",
+    "createTarget(config)",
+    "createInspector(config?)",
+    "createOrchestrator(config?)",
+    "getAllProbes()",
+    "getProbesByCategory(category)",
+    "getProbesForDefense(defense)",
+    "allDocumentedTechniques",
+    "allPayloadTemplates",
+    "allExfiltrationVectors",
+    "allBypassMethods"
+  ]
+}
