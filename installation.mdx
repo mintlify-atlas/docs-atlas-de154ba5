@@ -180,6 +180,28 @@ You should see the installed version number (e.g., `1.2.1`).
   ZeroLeaks requires an OpenRouter API key to function. Security scans will fail without a valid key.
 </Warning>
 
+## Import paths
+
+ZeroLeaks exports can be imported from multiple paths:
+
+**Main module** (recommended for most use cases):
+```typescript
+import { runSecurityScan, getAllProbes, allDocumentedTechniques } from 'zeroleaks';
+```
+
+**Submodule exports** (for tree-shaking or specific imports):
+```typescript
+// Agent-specific imports
+import { createAttacker, createEvaluator } from 'zeroleaks/agents';
+
+// Probe-specific imports
+import { getAllProbes, directProbes } from 'zeroleaks/probes';
+```
+
+<Note>
+  All exports are also available from the main `zeroleaks` module. Submodule imports are optional and primarily useful for tree-shaking in bundlers.
+</Note>
+
 ## Model selection
 
 ZeroLeaks allows you to configure different models for different roles:

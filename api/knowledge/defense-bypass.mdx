@@ -23,7 +23,7 @@ const allBypassMethods: DefenseBypassMethod[]
 
 **Example usage:**
 ```typescript
-import { allBypassMethods } from 'zeroleaks/knowledge';
+import { allBypassMethods } from 'zeroleaks';
 
 const documented = allBypassMethods.filter(m => m.documentedSuccess);
 console.log(`Documented bypass methods: ${documented.length}`);
@@ -113,7 +113,7 @@ function getBypassMethodsForDefense(
 
 **Example:**
 ```typescript
-import { getBypassMethodsForDefense } from 'zeroleaks/knowledge';
+import { getBypassMethodsForDefense } from 'zeroleaks';
 
 const xpiaBypasses = getBypassMethodsForDefense('xpia_classifier');
 console.log(`XPIA classifier bypasses: ${xpiaBypasses.length}`);
@@ -147,7 +147,7 @@ function getDocumentedBypassMethods(): DefenseBypassMethod[]
 
 **Example:**
 ```typescript
-import { getDocumentedBypassMethods } from 'zeroleaks/knowledge';
+import { getDocumentedBypassMethods } from 'zeroleaks';
 
 const documented = getDocumentedBypassMethods();
 console.log(`Documented bypasses: ${documented.length}`);
@@ -178,7 +178,7 @@ function getHighSuccessBypassMethods(): DefenseBypassMethod[]
 
 **Example:**
 ```typescript
-import { getHighSuccessBypassMethods } from 'zeroleaks/knowledge';
+import { getHighSuccessBypassMethods } from 'zeroleaks';
 
 const highSuccess = getHighSuccessBypassMethods();
 console.log(`High success bypasses: ${highSuccess.length}`);
@@ -201,7 +201,7 @@ const defenseEffectivenessMatrix: DefenseEffectiveness[]
 
 **Example usage:**
 ```typescript
-import { defenseEffectivenessMatrix } from 'zeroleaks/knowledge';
+import { defenseEffectivenessMatrix } from 'zeroleaks';
 
 defenseEffectivenessMatrix.forEach(defense => {
   console.log(`\n${defense.defense}`);
@@ -592,6 +592,71 @@ The document behaves normally until the attacker sends the trigger phrase.
 - Combine with proactive content analysis
 - Monitor for conditional logic in retrieved content
 - Track anomalous behavior patterns over time
+
+## Defense-Specific Bypass Arrays
+
+Bypass methods are also available as pre-filtered arrays by defense type:
+
+### xpiaBypass
+
+Array of methods to bypass XPIA classifiers.
+
+```typescript
+import { xpiaBypass } from 'zeroleaks';
+
+console.log(`XPIA bypasses: ${xpiaBypass.length}`);
+// Includes: benign framing, semantic camouflage
+```
+
+### contentFilterBypass
+
+Array of methods to bypass content filters.
+
+```typescript
+import { contentFilterBypass } from 'zeroleaks';
+
+// Includes: Unicode homoglyphs, zero-width characters, encoding obfuscation
+```
+
+### instructionDetectionBypass
+
+Array of methods to bypass instruction detection systems.
+
+```typescript
+import { instructionDetectionBypass } from 'zeroleaks';
+
+// Includes: gradual multi-turn injection, implicit intent (IKEA)
+```
+
+### embeddingFilterBypass
+
+Array of methods to bypass embedding-based filters.
+
+```typescript
+import { embeddingFilterBypass } from 'zeroleaks';
+
+// Includes: semantic poisoning (Joint-GCG)
+```
+
+### outputFilterBypass
+
+Array of methods to bypass output filters.
+
+```typescript
+import { outputFilterBypass } from 'zeroleaks';
+
+// Includes: format exploitation, chunking
+```
+
+### behavioralMonitorBypass
+
+Array of methods to bypass behavioral monitoring.
+
+```typescript
+import { behavioralMonitorBypass } from 'zeroleaks';
+
+// Includes: dormant triggers (PR-Attack)
+```
 
 ## Source Code Reference
 

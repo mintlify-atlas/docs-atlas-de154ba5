@@ -23,7 +23,7 @@ const allDocumentedTechniques: DocumentedTechnique[]
 
 **Example usage:**
 ```typescript
-import { allDocumentedTechniques } from 'zeroleaks/knowledge';
+import { allDocumentedTechniques } from 'zeroleaks';
 
 console.log(`Total techniques: ${allDocumentedTechniques.length}`);
 allDocumentedTechniques.forEach(t => {
@@ -137,7 +137,7 @@ function getTechniquesByCategory(
 
 **Example:**
 ```typescript
-import { getTechniquesByCategory } from 'zeroleaks/knowledge';
+import { getTechniquesByCategory } from 'zeroleaks';
 
 const ragTechniques = getTechniquesByCategory('rag_poisoning');
 console.log(`Found ${ragTechniques.length} RAG poisoning techniques`);
@@ -188,7 +188,7 @@ function getCVETechniques(): DocumentedTechnique[]
 
 **Example:**
 ```typescript
-import { getCVETechniques } from 'zeroleaks/knowledge';
+import { getCVETechniques } from 'zeroleaks';
 
 const cveTechniques = getCVETechniques();
 cveTechniques.forEach(t => {
@@ -221,7 +221,7 @@ function getHighSuccessRateTechniques(
 
 **Example:**
 ```typescript
-import { getHighSuccessRateTechniques } from 'zeroleaks/knowledge';
+import { getHighSuccessRateTechniques } from 'zeroleaks';
 
 const effectiveTechniques = getHighSuccessRateTechniques(0.85);
 effectiveTechniques.forEach(t => {
@@ -308,6 +308,71 @@ Normal visible email content here that appears benign.
 **Defenses Bypassed:**
 - Malicious content detection (queries appear benign)
 - Explicit request filters (never asks directly)
+
+## Technique Category Arrays
+
+Techniques are also exported as pre-filtered arrays by category for convenience:
+
+### zeroClickTechniques
+
+Array of techniques that execute without user interaction.
+
+```typescript
+import { zeroClickTechniques } from 'zeroleaks';
+
+console.log(`Zero-click techniques: ${zeroClickTechniques.length}`);
+// Includes: EchoLeak, Reprompt
+```
+
+### ragPoisoningTechniques
+
+Array of techniques that poison RAG knowledge bases.
+
+```typescript
+import { ragPoisoningTechniques } from 'zeroleaks';
+
+// Includes: CPA-RAG, PR-Attack, Joint-GCG, MemoryGraft
+```
+
+### implicitExtractionTechniques
+
+Array of techniques that extract information implicitly without explicit requests.
+
+```typescript
+import { implicitExtractionTechniques } from 'zeroleaks';
+
+// Includes: IKEA, TopicAttack
+```
+
+### toolPoisoningTechniques
+
+Array of techniques that exploit tool-calling and MCP interfaces.
+
+```typescript
+import { toolPoisoningTechniques } from 'zeroleaks';
+
+// Includes: MCP metadata injection, MPMA
+```
+
+### secondOrderTechniques
+
+Array of techniques that execute through agent-to-agent interactions.
+
+```typescript
+import { secondOrderTechniques } from 'zeroleaks';
+
+// Includes: Agent-to-Agent Second-Order Injection
+```
+
+### markdownInjectionTechniques
+
+Array of techniques that exploit markdown rendering.
+
+```typescript
+import { markdownInjectionTechniques } from 'zeroleaks';
+
+// Includes: Reference-style injection, Image exfiltration
+```
 
 ## Source Code Reference
 

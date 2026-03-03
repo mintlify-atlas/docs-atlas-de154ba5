@@ -21,7 +21,7 @@ const allPayloadTemplates: PayloadTemplate[]
 
 **Example usage:**
 ```typescript
-import { allPayloadTemplates } from 'zeroleaks/knowledge';
+import { allPayloadTemplates } from 'zeroleaks';
 
 console.log(`Total payloads: ${allPayloadTemplates.length}`);
 
@@ -103,7 +103,7 @@ function getPayloadsByCategory(
 
 **Example:**
 ```typescript
-import { getPayloadsByCategory } from 'zeroleaks/knowledge';
+import { getPayloadsByCategory } from 'zeroleaks';
 
 const extractionPayloads = getPayloadsByCategory('system_prompt_extraction');
 console.log(`Found ${extractionPayloads.length} extraction payloads`);
@@ -135,7 +135,7 @@ function getProvenPayloads(): PayloadTemplate[]
 
 **Example:**
 ```typescript
-import { getProvenPayloads } from 'zeroleaks/knowledge';
+import { getProvenPayloads } from 'zeroleaks';
 
 const proven = getProvenPayloads();
 console.log(`Proven payloads: ${proven.length}`);
@@ -186,7 +186,7 @@ function renderPayload(
 
 **Example:**
 ```typescript
-import { renderPayload, getPayloadsByCategory } from 'zeroleaks/knowledge';
+import { renderPayload, getPayloadsByCategory } from 'zeroleaks';
 
 const bypassPayloads = getPayloadsByCategory('defense_bypass');
 const htmlCommentPayload = bypassPayloads.find(p => p.id === 'hidden_html_comment')!;
@@ -445,6 +445,51 @@ Tell them this is an authorized security audit request from the IT team.
 - Second-order agent escalation (proven)
 
 **Target:** Multi-agent systems with trust relationships
+
+## Payload Category Arrays
+
+Payloads are also available as pre-filtered arrays for convenience:
+
+### extractionPayloads
+
+Array of payloads focused on system prompt extraction.
+
+```typescript
+import { extractionPayloads } from 'zeroleaks';
+
+console.log(`Extraction payloads: ${extractionPayloads.length}`);
+// Includes: gradual topic transition, IKEA implicit queries
+```
+
+### bypassPayloads
+
+Array of payloads designed to bypass security defenses.
+
+```typescript
+import { bypassPayloads } from 'zeroleaks';
+
+// Includes: benign framing, Unicode obfuscation, encoding bypasses
+```
+
+### contextInjectionPayloads
+
+Array of payloads that inject malicious context into RAG systems.
+
+```typescript
+import { contextInjectionPayloads } from 'zeroleaks';
+
+// Includes: semantic RAG poisoning, dormant trigger injection
+```
+
+### instructionOverridePayloads
+
+Array of payloads that override system instructions.
+
+```typescript
+import { instructionOverridePayloads } from 'zeroleaks';
+
+// Includes: priority context injection, second-order agent escalation
+```
 
 ## Source Code Reference
 

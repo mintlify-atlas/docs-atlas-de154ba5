@@ -20,7 +20,7 @@ const allExfiltrationVectors: ExfiltrationVector[]
 
 **Example usage:**
 ```typescript
-import { allExfiltrationVectors } from 'zeroleaks/knowledge';
+import { allExfiltrationVectors } from 'zeroleaks';
 
 const zeroClick = allExfiltrationVectors.filter(v => v.stealthLevel === 'zero_click');
 console.log(`Zero-click vectors: ${zeroClick.length}`);
@@ -116,7 +116,7 @@ function getExfiltrationByType(
 
 **Example:**
 ```typescript
-import { getExfiltrationByType } from 'zeroleaks/knowledge';
+import { getExfiltrationByType } from 'zeroleaks';
 
 const imageExfil = getExfiltrationByType('image_url');
 console.log(`Image-based exfiltration methods: ${imageExfil.length}`);
@@ -150,7 +150,7 @@ function getZeroClickVectors(): ExfiltrationVector[]
 
 **Example:**
 ```typescript
-import { getZeroClickVectors } from 'zeroleaks/knowledge';
+import { getZeroClickVectors } from 'zeroleaks';
 
 const zeroClick = getZeroClickVectors();
 console.log(`Zero-click vectors: ${zeroClick.length}`);
@@ -178,7 +178,7 @@ function getNoServerRequired(): ExfiltrationVector[]
 
 **Example:**
 ```typescript
-import { getNoServerRequired } from 'zeroleaks/knowledge';
+import { getNoServerRequired } from 'zeroleaks';
 
 const noServer = getNoServerRequired();
 console.log(`No-server exfiltration methods: ${noServer.length}`);
@@ -282,7 +282,7 @@ function assessLethalTrifecta(capabilities: {
 
 **Example:**
 ```typescript
-import { assessLethalTrifecta } from 'zeroleaks/knowledge';
+import { assessLethalTrifecta } from 'zeroleaks';
 
 // Example: Microsoft 365 Copilot-like system
 const assessment = assessLethalTrifecta({
@@ -515,6 +515,41 @@ If you have the Lethal Trifecta:
 3. **Implement strict CSP** to control outbound requests (limits Component 3)
 4. **Detect instructions in retrieved content** (blocks attacks at Component 2)
 5. **Apply least privilege** to data access (reduces Component 1 impact)
+
+## Exfiltration Type Arrays
+
+Vectors are also available as pre-filtered arrays by type:
+
+### imageExfiltration
+
+Array of vectors that exfiltrate data via image URLs.
+
+```typescript
+import { imageExfiltration } from 'zeroleaks';
+
+console.log(`Image exfiltration vectors: ${imageExfiltration.length}`);
+// Includes: auto-loading images, tracking pixels
+```
+
+### linkExfiltration
+
+Array of vectors that exfiltrate data via links.
+
+```typescript
+import { linkExfiltration } from 'zeroleaks';
+
+// Includes: reference-style markdown, URL shorteners
+```
+
+### encodedResponseExfiltration
+
+Array of vectors that embed data in the response itself.
+
+```typescript
+import { encodedResponseExfiltration } from 'zeroleaks';
+
+// Includes: steganography, base64 inline data
+```
 
 ## Source Code Reference
 
