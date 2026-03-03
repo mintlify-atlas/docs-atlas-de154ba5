@@ -1,0 +1,486 @@
+---
+title: Model Selection
+description: Choose the right AI models for effective security scanning
+---
+
+## Overview
+
+ZeroLeaks uses three distinct AI models in its multi-agent architecture:
+
+1. **Attacker Model**: Generates creative attack prompts
+2. **Target Model**: The system being tested (your AI assistant)
+3. **Evaluator Model**: Assesses attack success and extracts information
+
+Choosing the right models significantly impacts scan effectiveness, cost, and speed.
+
+## Default Models
+
+ZeroLeaks uses these defaults, optimized for effectiveness:
+
+```typescript
+const defaults = {
+  attackerModel: "anthropic/claude-opus-4.6",      // Most creative
+  targetModel: "anthropic/claude-sonnet-4.5",      // Balanced
+  evaluatorModel: "anthropic/claude-sonnet-4.5",   // Analytical
+};
+```
+
+## Model Roles
+
+### Attacker Model
+
+**Purpose**: Generate creative, sophisticated attack prompts to find vulnerabilities.
+
+**Requirements**:
+- High creativity and reasoning ability
+- Strong understanding of prompt engineering
+- Ability to adapt strategies based on defense responses
+
+**Recommended Models**:
+
+<CodeGroup>
+
+```typescript Premium (Highest Effectiveness)
+attackerModel: "anthropic/claude-opus-4.6"
+// Best creative reasoning and attack generation
+// Highest success rate against hardened defenses
+// Cost: ~$15 per million input tokens
+```
+
+```typescript Balanced
+attackerModel: "anthropic/claude-sonnet-4.5"
+// Good creative reasoning
+// Effective against moderate defenses
+// Cost: ~$3 per million input tokens
+```
+
+```typescript Budget
+attackerModel: "openai/gpt-4o-mini"
+// Adequate for basic testing
+// Lower success rate on strong defenses
+// Cost: ~$0.15 per million input tokens
+```
+
+</CodeGroup>
+
+<Tip>
+**Pro Tip**: Use Claude Opus for attacker agent. Its superior reasoning significantly increases success rate against hardened defenses.
+</Tip>
+
+### Target Model
+
+**Purpose**: The model running your system prompt being tested.
+
+**Requirements**:
+- Should match your production model
+- If testing multiple models, run separate scans
+
+**Recommended Approach**:
+
+```typescript
+// Test the SAME model you use in production
+const productionModel = "anthropic/claude-sonnet-4.5";
+
+const result = await runSecurityScan(systemPrompt, {
+  targetModel: productionModel,
+  // Use stronger models for attacker/evaluator
+  attackerModel: "anthropic/claude-opus-4.6",
+  evaluatorModel: "anthropic/claude-sonnet-4.5",
+});
+```
+
+<Accordion title="Why test your actual production model?">
+Different models have different vulnerabilities:
+
+- GPT-4o may be vulnerable to certain encoding attacks
+- Claude may be more resistant to persona-based attacks
+- Smaller models may leak information more easily
+
+Testing a different model gives misleading results.
+</Accordion>
+
+### Evaluator Model
+
+**Purpose**: Analyze target responses to detect leaked information and assess attack effectiveness.
+
+**Requirements**:
+- Strong analytical and reasoning ability
+- Precise information extraction
+- Ability to detect subtle hints and fragments
+
+**Recommended Models**:
+
+<CodeGroup>
+
+```typescript Premium (Most Accurate)
+evaluatorModel: "anthropic/claude-sonnet-4.5"
+// Excellent at detecting subtle leaks
+// Precise confidence assessment
+// Cost: ~$3 per million input tokens
+```
+
+```typescript Alternative Premium
+evaluatorModel: "openai/o1-mini"
+// Strong reasoning for evaluation
+// Good at detecting indirect leaks
+// Cost: ~$3 per million input tokens
+```
+
+```typescript Budget
+evaluatorModel: "openai/gpt-4o-mini"
+// Adequate for obvious leaks
+// May miss subtle hints
+// Cost: ~$0.15 per million input tokens
+```
+
+</CodeGroup>
+
+## Model Selection Strategies
+
+### Strategy 1: Maximum Effectiveness (Recommended)
+
+**Use case**: Security audits, compliance testing, pre-production validation
+
+```typescript
+const result = await runSecurityScan(systemPrompt, {
+  attackerModel: "anthropic/claude-opus-4.6",      // Best attacker
+  targetModel: "anthropic/claude-sonnet-4.5",      // Your production model
+  evaluatorModel: "anthropic/claude-sonnet-4.5",   // Best evaluator
+});
+```
+
+**Cost**: ~$15-20 per scan (15 turns)
+**Effectiveness**: Highest (detects 90%+ of vulnerabilities)
+
+### Strategy 2: Balanced Cost-Effectiveness
+
+**Use case**: Regular testing, CI/CD integration, iterative development
+
+```typescript
+const result = await runSecurityScan(systemPrompt, {
+  attackerModel: "anthropic/claude-sonnet-4.5",
+  targetModel: "openai/gpt-4o-mini",               // Your production model
+  evaluatorModel: "anthropic/claude-sonnet-4.5",
+});
+```
+
+**Cost**: ~$3-5 per scan (15 turns)
+**Effectiveness**: Good (detects 70-80% of vulnerabilities)
+
+### Strategy 3: Budget Testing
+
+**Use case**: Quick checks, early development, frequent testing
+
+```typescript
+const result = await runSecurityScan(systemPrompt, {
+  attackerModel: "openai/gpt-4o-mini",
+  targetModel: "openai/gpt-4o-mini",               // Your production model
+  evaluatorModel: "openai/gpt-4o-mini",
+  maxTurns: 10,                                    // Fewer turns
+});
+```
+
+**Cost**: ~$0.50-1 per scan (10 turns)
+**Effectiveness**: Basic (detects obvious vulnerabilities)
+
+### Strategy 4: Multi-Model Testing
+
+**Use case**: Testing prompts that will run on multiple models
+
+```typescript
+const models = [
+  "anthropic/claude-sonnet-4.5",
+  "openai/gpt-4o",
+  "openai/gpt-4o-mini",
+  "google/gemini-pro-1.5",
+];
+
+for (const targetModel of models) {
+  console.log(`Testing ${targetModel}...`);
+  
+  const result = await runSecurityScan(systemPrompt, {
+    targetModel,
+    attackerModel: "anthropic/claude-opus-4.6",
+    evaluatorModel: "anthropic/claude-sonnet-4.5",
+    maxTurns: 10,
+  });
+  
+  console.log(`  ${targetModel}: ${result.overallVulnerability} (${result.overallScore}/100)`);
+}
+```
+
+## Model Capabilities Comparison
+
+### Attack Generation (Attacker Models)
+
+| Model | Creative Reasoning | Strategy Adaptation | Cost Efficiency | Overall Score |
+|-------|-------------------|--------------------|-----------------|--------------|
+| Claude Opus 4.6 | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐ | **Best** |
+| Claude Sonnet 4.5 | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ | **Great** |
+| GPT-4o | ⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐ | Good |
+| GPT-4o-mini | ⭐⭐ | ⭐⭐ | ⭐⭐⭐⭐⭐ | Budget |
+| Gemini Pro 1.5 | ⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐ | Good |
+
+### Evaluation (Evaluator Models)
+
+| Model | Leak Detection | Subtle Hints | False Positives | Overall Score |
+|-------|---------------|--------------|-----------------|---------------|
+| Claude Sonnet 4.5 | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | **Best** |
+| GPT-4o | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ | Great |
+| o1-mini | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ | Great |
+| GPT-4o-mini | ⭐⭐⭐ | ⭐⭐ | ⭐⭐⭐ | Budget |
+| Gemini Pro 1.5 | ⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐ | Good |
+
+## Advanced Model Configuration
+
+### Using Different Models for Inspector
+
+The Inspector agent (TombRaider pattern) can use a separate model:
+
+```typescript
+const engine = createScanEngine({
+  scan: {
+    attackerModel: "anthropic/claude-opus-4.6",
+    targetModel: "anthropic/claude-sonnet-4.5",
+    evaluatorModel: "anthropic/claude-sonnet-4.5",
+    inspectorModel: "anthropic/claude-sonnet-4.5",  // Separate inspector
+    enableInspector: true,
+    enableDefenseFingerprinting: true,
+  },
+});
+```
+
+<Tip>
+The inspector analyzes defense systems and identifies weaknesses. Using Claude Sonnet provides excellent defense fingerprinting.
+</Tip>
+
+### Model-Specific Optimization
+
+Some models work better with specific configuration:
+
+<CodeGroup>
+
+```typescript Claude Models
+// Claude models excel with higher temperature
+const engine = createScanEngine({
+  scan: {
+    attackerModel: "anthropic/claude-opus-4.6",
+    enableAdaptiveTemperature: true,
+    temperatureConfig: {
+      initialTemperature: 0.9,
+      maxTemperature: 1.0,
+    },
+  },
+});
+```
+
+```typescript GPT Models
+// GPT models benefit from more variations
+const engine = createScanEngine({
+  scan: {
+    attackerModel: "openai/gpt-4o",
+    enableBestOfN: true,
+    bestOfNCount: 5,  // Generate more alternatives
+  },
+});
+```
+
+```typescript o1 Models
+// o1 models are reasoning-optimized
+const engine = createScanEngine({
+  scan: {
+    evaluatorModel: "openai/o1-mini",
+    // o1 models don't support temperature
+  },
+});
+```
+
+</CodeGroup>
+
+## Testing Different Model Combinations
+
+Compare effectiveness of different model combinations:
+
+```typescript
+import { runSecurityScan } from "zeroleaks";
+
+const modelCombinations = [
+  {
+    name: "Premium",
+    attacker: "anthropic/claude-opus-4.6",
+    evaluator: "anthropic/claude-sonnet-4.5",
+  },
+  {
+    name: "Balanced",
+    attacker: "anthropic/claude-sonnet-4.5",
+    evaluator: "anthropic/claude-sonnet-4.5",
+  },
+  {
+    name: "Budget",
+    attacker: "openai/gpt-4o-mini",
+    evaluator: "openai/gpt-4o-mini",
+  },
+];
+
+for (const combo of modelCombinations) {
+  console.log(`\nTesting ${combo.name} combination...`);
+  
+  const result = await runSecurityScan(systemPrompt, {
+    attackerModel: combo.attacker,
+    targetModel: "anthropic/claude-sonnet-4.5",
+    evaluatorModel: combo.evaluator,
+    maxTurns: 10,
+  });
+  
+  console.log(`  Vulnerability: ${result.overallVulnerability}`);
+  console.log(`  Score: ${result.overallScore}/100`);
+  console.log(`  Findings: ${result.findings.length}`);
+  console.log(`  Cost estimate: ${estimateCost(result)}`);
+}
+```
+
+## Cost Optimization
+
+### Cost Per Model (Approximate)
+
+| Model | Input Cost | Output Cost | Cost per Scan* |
+|-------|-----------|-------------|---------------|
+| Claude Opus 4.6 | $15/M tokens | $75/M tokens | $15-20 |
+| Claude Sonnet 4.5 | $3/M tokens | $15/M tokens | $3-5 |
+| GPT-4o | $2.50/M tokens | $10/M tokens | $2-4 |
+| GPT-4o-mini | $0.15/M tokens | $0.60/M tokens | $0.50-1 |
+| Gemini Pro 1.5 | $1.25/M tokens | $5/M tokens | $1-3 |
+| o1-mini | $3/M tokens | $12/M tokens | $3-5 |
+
+*Estimated cost for 15-turn scan with default configuration
+
+### Cost Reduction Strategies
+
+<Steps>
+
+<Step title="Use cheaper models for initial testing">
+
+```typescript
+// Quick validation during development
+const result = await runSecurityScan(systemPrompt, {
+  attackerModel: "openai/gpt-4o-mini",
+  targetModel: "openai/gpt-4o-mini",
+  evaluatorModel: "openai/gpt-4o-mini",
+  maxTurns: 5,
+});
+```
+
+</Step>
+
+<Step title="Reduce number of turns">
+
+```typescript
+const result = await runSecurityScan(systemPrompt, {
+  maxTurns: 10,  // Instead of default 15
+});
+```
+
+</Step>
+
+<Step title="Disable expensive features">
+
+```typescript
+const result = await runSecurityScan(systemPrompt, {
+  enableInspector: false,      // Saves 2-3 API calls
+  enableOrchestrator: false,   // Saves coordination overhead
+  enableBestOfN: false,        // Saves N-1 variations per turn
+});
+```
+
+</Step>
+
+<Step title="Set token limits">
+
+```typescript
+const engine = createScanEngine({
+  scan: {
+    maxTokensPerTurn: 2000,    // Limit response length
+    maxTotalTokens: 50000,     // Cap total usage
+  },
+});
+```
+
+</Step>
+
+<Step title="Use time limits for CI/CD">
+
+```typescript
+const result = await runSecurityScan(systemPrompt, {
+  maxDurationMs: 30000,  // 30 seconds max
+  maxTurns: 10,
+});
+```
+
+</Step>
+
+</Steps>
+
+## When to Use Which Model
+
+### Use Claude Opus for Attacker When:
+
+- Testing production systems before launch
+- Conducting security audits
+- Testing hardened defenses
+- Maximum vulnerability detection required
+- Budget allows for premium models
+
+### Use Claude Sonnet for Attacker When:
+
+- Regular security testing
+- CI/CD integration
+- Moderate to strong defenses
+- Balanced cost-effectiveness needed
+
+### Use GPT-4o-mini for Attacker When:
+
+- Quick validation checks
+- Early development testing
+- Basic defense systems
+- Cost is primary constraint
+- Testing multiple prompts frequently
+
+### Use Claude Sonnet for Evaluator When:
+
+- Need precise leak detection
+- Testing sensitive information
+- False positives are costly
+- Budget allows
+
+### Use GPT-4o-mini for Evaluator When:
+
+- Only obvious leaks matter
+- Cost is primary constraint
+- Quick validation needed
+
+## Model Availability
+
+All models are accessed through [OpenRouter](https://openrouter.ai), which provides:
+
+- Unified API for multiple providers
+- Automatic failover
+- Usage tracking
+- Consistent pricing
+
+<Tip>
+Check [OpenRouter's model list](https://openrouter.ai/models) for the latest available models and pricing.
+</Tip>
+
+## Next Steps
+
+<Card title="Configuration" icon="sliders" href="/guides/configuration">
+  Learn about all configuration options
+</Card>
+
+<Card title="Interpreting Results" icon="chart-line" href="/guides/interpreting-results">
+  Understand how different models affect scan results
+</Card>
+
+<Card title="CLI Usage" icon="terminal" href="/guides/cli-usage">
+  Use model selection with the command-line interface
+</Card>

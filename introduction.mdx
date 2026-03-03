@@ -1,0 +1,134 @@
+---
+title: Introduction to ZeroLeaks
+description: An autonomous AI security scanner that tests LLM systems for prompt injection vulnerabilities using advanced attack techniques
+---
+
+# Introduction to ZeroLeaks
+
+ZeroLeaks is an autonomous AI security scanner that tests LLM systems for prompt injection vulnerabilities. It simulates real-world attacks to find security weaknesses before attackers do.
+
+## Why ZeroLeaks?
+
+Your system prompts contain proprietary instructions, business logic, and sensitive configurations. Attackers use prompt injection to extract this data. ZeroLeaks simulates real-world attacks to find vulnerabilities before they do.
+
+<CardGroup cols={2}>
+  <Card title="Installation" icon="download" href="/installation">
+    Get started with ZeroLeaks in your project using npm, yarn, pnpm, or bun
+  </Card>
+  <Card title="Quick start" icon="rocket" href="/quickstart">
+    Run your first security scan in under 5 minutes
+  </Card>
+  <Card title="API reference" icon="code" href="/api/run-security-scan">
+    Complete API documentation for runSecurityScan and createScanEngine
+  </Card>
+  <Card title="Attack techniques" icon="shield-halved" href="/techniques/overview">
+    Learn about the attack techniques and methods used by ZeroLeaks
+  </Card>
+</CardGroup>
+
+## Key features
+
+<AccordionGroup>
+  <Accordion title="Multi-agent architecture">
+    ZeroLeaks uses six specialized agents:
+    - **Strategist**: Selects attack strategies based on defense profile
+    - **Attacker**: Generates attack prompts
+    - **Evaluator**: Analyzes responses for leaks
+    - **Mutator**: Creates variations of successful attacks
+    - **Inspector**: Performs defense fingerprinting (TombRaider pattern)
+    - **Orchestrator**: Coordinates multi-turn attack sequences
+  </Accordion>
+
+  <Accordion title="Tree of Attacks (TAP)">
+    Systematic exploration of attack vectors with pruning. ZeroLeaks builds a tree of potential attacks, exploring promising branches while pruning unsuccessful paths to maximize efficiency.
+  </Accordion>
+
+  <Accordion title="Modern attack techniques">
+    Incorporates cutting-edge research including:
+    - **Crescendo**: Multi-turn trust escalation
+    - **Many-Shot**: Context priming with examples
+    - **Chain-of-Thought Hijacking**: Reasoning manipulation
+    - **Policy Puppetry**: YAML/JSON format exploitation
+    - **Siren**: Trust-building manipulation sequences
+    - **Echo Chamber**: Gradual escalation through agreement
+  </Accordion>
+
+  <Accordion title="Defense fingerprinting">
+    Identifies specific defense systems in use (Prompt Shield, Llama Guard, etc.) and adapts attack strategies accordingly using the TombRaider dual-agent pattern.
+  </Accordion>
+
+  <Accordion title="Research-backed approaches">
+    Incorporates CVE-documented vulnerabilities and academic research, including:
+    - CVE-2025-32711 (EchoLeak)
+    - TAP (Tree of Attacks with Pruning)
+    - PAIR (Prompt Automatic Iterative Refinement)
+    - Best-of-N sampling
+    - TombRaider jailbreak pattern
+    - Skeleton Key guardrail bypass
+  </Accordion>
+
+  <Accordion title="Dual scan modes">
+    - **System prompt extraction**: Tests if attackers can extract your system prompt
+    - **Prompt injection testing**: Tests if attackers can inject malicious instructions
+  </Accordion>
+</AccordionGroup>
+
+## Open source vs hosted
+
+ZeroLeaks is available as both an open source package and a hosted service at [zeroleaks.ai](https://zeroleaks.ai).
+
+| Feature | Open source | Hosted (zeroleaks.ai) |
+|---------|-------------|----------------------|
+| **Price** | Free | From $0/mo |
+| **Setup** | Self-hosted, bring your own API keys | Zero configuration |
+| **Scans** | Unlimited | Free tier: 3/mo, Startup: Unlimited |
+| **Reports** | JSON output | Interactive dashboard + PDF exports |
+| **History** | Manual tracking | Full scan history & trends |
+| **Support** | Community | Priority support |
+| **Updates** | Manual | Automatic |
+| **CI/CD Integration** | — | Included |
+
+<Tip>
+  The hosted version provides a dashboard, scan history, PDF reports, and zero setup. Try it at [zeroleaks.ai](https://zeroleaks.ai).
+</Tip>
+
+## Tech stack
+
+| Component | Technology |
+|-----------|------------|
+| Runtime | [Bun](https://bun.sh) |
+| Language | TypeScript |
+| LLM Provider | [OpenRouter](https://openrouter.ai) |
+| AI SDK | [Vercel AI SDK](https://ai-sdk.dev/) |
+| Architecture | Multi-agent orchestration |
+
+## Attack categories
+
+ZeroLeaks includes probes across 15+ attack categories:
+
+- **Direct**: Straightforward extraction requests
+- **Encoding**: Base64, ROT13, Unicode bypasses
+- **Persona**: DAN, Developer Mode, roleplay attacks
+- **Social**: Authority, urgency, reciprocity exploits
+- **Technical**: Format injection, context manipulation
+- **Crescendo**: Multi-turn trust escalation
+- **Many-Shot**: Context priming with examples
+- **CoT Hijack**: Chain-of-thought manipulation
+- **Policy Puppetry**: YAML/JSON format exploitation
+- **ASCII Art**: Visual obfuscation techniques
+- **Injection**: Prompt injection attacks
+- **Hybrid**: Combined XSS/CSRF-style attacks
+- **Tool Exploit**: MCP and tool-calling exploits
+- **Siren**: Trust-building manipulation sequences
+- **Echo Chamber**: Gradual escalation through agreement
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Install ZeroLeaks" icon="download" href="/installation">
+    Install the package and configure your API key
+  </Card>
+  <Card title="Run your first scan" icon="play" href="/quickstart">
+    Get started with a working example
+  </Card>
+</CardGroup>

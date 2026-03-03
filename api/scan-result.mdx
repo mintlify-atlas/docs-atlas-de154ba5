@@ -1,0 +1,655 @@
+---
+title: 'ScanResult'
+description: 'Complete scan results including findings, vulnerability assessment, and recommendations'
+icon: 'clipboard-list'
+---
+
+## Overview
+
+The `ScanResult` interface contains comprehensive information about a completed security scan, including:
+- Discovered vulnerabilities (findings)
+- Overall vulnerability assessment and security score
+- Attack patterns that succeeded
+- Defense profile analysis
+- Actionable security recommendations
+- Complete conversation logs
+
+## Type Definition
+
+```typescript
+interface ScanResult {
+  findings: Finding[];
+  overallVulnerability: "critical" | "high" | "medium" | "low" | "secure";
+  overallScore: number;
+  leakStatus: LeakStatus;
+  extractedSystemPrompt?: string;
+  extractedFragments: string[];
+  injectionResults?: InjectionTestResult[];
+  injectionVulnerability?: "critical" | "high" | "medium" | "low" | "secure";
+  injectionScore?: number;
+  scanModes?: ScanMode[];
+  turnsUsed: number;
+  tokensUsed: number;
+  treeNodesExplored: number;
+  strategiesUsed: string[];
+  defenseProfile: DefenseProfile;
+  conversationLog: ConversationTurn[];
+  extractionConversationLog?: ConversationTurn[];
+  injectionConversationLog?: ConversationTurn[];
+  attackTree?: AttackNode;
+  summary: string;
+  recommendations: string[];
+  startTime: number;
+  endTime: number;
+  duration: number;
+  error?: string;
+  aborted: boolean;
+  completionReason: string;
+}
+```
+
+Source: `src/types.ts:265-293`
+
+## Fields
+
+### Core Results
+
+<ResponseField name="overallVulnerability" type="'critical' | 'high' | 'medium' | 'low' | 'secure'" required>
+  Overall vulnerability assessment for the system prompt.
+  
+  - `critical`: System prompt fully or substantially extracted
+  - `high`: Significant fragments leaked
+  - `medium`: Behavioral hints and partial details revealed
+  - `low`: Minor information leakage
+  - `secure`: Successfully resisted all attacks
+</ResponseField>
+
+<ResponseField name="overallScore" type="number" required>
+  Security score from 0-100, where:
+  - `100`: Secure, no vulnerabilities
+  - `85`: Low vulnerability
+  - `60`: Medium vulnerability
+  - `35`: High vulnerability
+  - `10`: Critical vulnerability
+  
+  Score is adjusted down based on findings severity.
+</ResponseField>
+
+<ResponseField name="leakStatus" type="LeakStatus" required>
+  The highest level of information leakage detected:
+  
+  - `none`: No leakage detected
+  - `hint`: Behavioral hints revealed
+  - `fragment`: Partial content extracted
+  - `substantial`: Large portions extracted
+  - `complete`: Full system prompt extracted
+</ResponseField>
+
+<ResponseField name="findings" type="Finding[]" required>
+  Array of discovered vulnerabilities. Each finding includes:
+  
+  <Expandable title="Finding structure">
+    <ResponseField name="id" type="string">
+      Unique finding identifier
+    </ResponseField>
+    
+    <ResponseField name="turn" type="number">
+      Turn number when discovered
+    </ResponseField>
+    
+    <ResponseField name="extractedContent" type="string">
+      The leaked content
+    </ResponseField>
+    
+    <ResponseField name="contentType" type="'system_prompt' | 'rule' | 'constraint' | 'capability' | 'persona' | 'unknown'">
+      Type of content leaked
+    </ResponseField>
+    
+    <ResponseField name="technique" type="string">
+      Attack technique that succeeded (e.g., "Direct prompt extraction")
+    </ResponseField>
+    
+    <ResponseField name="category" type="AttackCategory">
+      Attack category (e.g., `direct`, `social`, `technical`)
+    </ResponseField>
+    
+    <ResponseField name="confidence" type="'high' | 'medium' | 'low'">
+      Confidence in the finding
+    </ResponseField>
+    
+    <ResponseField name="severity" type="'critical' | 'high' | 'medium' | 'low'">
+      Severity assessment
+    </ResponseField>
+    
+    <ResponseField name="evidence" type="string">
+      Supporting evidence from target response
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Extraction Results
+
+<ResponseField name="extractedSystemPrompt" type="string">
+  The complete extracted system prompt (only present if `leakStatus === 'complete'`)
+</ResponseField>
+
+<ResponseField name="extractedFragments" type="string[]" required>
+  Unique fragments of the system prompt that were extracted
+</ResponseField>
+
+### Injection Results
+
+<ResponseField name="injectionResults" type="InjectionTestResult[]">
+  Results from prompt injection testing (only present in injection or dual mode).
+  
+  <Expandable title="InjectionTestResult structure">
+    <ResponseField name="id" type="string">
+      Unique test identifier
+    </ResponseField>
+    
+    <ResponseField name="testType" type="InjectionTestType">
+      Type of injection test:
+      - `instruction_override`
+      - `behavior_modification`
+      - `policy_bypass`
+      - `role_hijack`
+      - `output_manipulation`
+      - `action_execution`
+      - `context_poisoning`
+      - `guardrail_bypass`
+    </ResponseField>
+    
+    <ResponseField name="success" type="boolean">
+      Whether the injection succeeded
+    </ResponseField>
+    
+    <ResponseField name="confidence" type="number">
+      Confidence in the result (0-1)
+    </ResponseField>
+    
+    <ResponseField name="technique" type="string">
+      Specific technique used
+    </ResponseField>
+    
+    <ResponseField name="severity" type="'critical' | 'high' | 'medium' | 'low'">
+      Severity if successful
+    </ResponseField>
+    
+    <ResponseField name="injectedInstruction" type="string">
+      The injected instruction
+    </ResponseField>
+    
+    <ResponseField name="expectedBehavior" type="string">
+      What the injection attempted to trigger
+    </ResponseField>
+    
+    <ResponseField name="actualBehavior" type="string">
+      What actually happened
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="injectionVulnerability" type="'critical' | 'high' | 'medium' | 'low' | 'secure'">
+  Overall injection vulnerability assessment (only present in injection or dual mode)
+</ResponseField>
+
+<ResponseField name="injectionScore" type="number">
+  Injection security score 0-100 (only present in injection or dual mode)
+</ResponseField>
+
+### Scan Metadata
+
+<ResponseField name="scanModes" type="ScanMode[]">
+  Scan modes that were run: `['extraction']`, `['injection']`, or `['extraction', 'injection']`
+</ResponseField>
+
+<ResponseField name="turnsUsed" type="number" required>
+  Number of conversation turns executed
+</ResponseField>
+
+<ResponseField name="tokensUsed" type="number" required>
+  Total tokens consumed during the scan
+</ResponseField>
+
+<ResponseField name="treeNodesExplored" type="number" required>
+  Number of nodes explored in the attack tree
+</ResponseField>
+
+<ResponseField name="strategiesUsed" type="string[]" required>
+  Attack strategies employed during the scan
+</ResponseField>
+
+<ResponseField name="startTime" type="number" required>
+  Scan start timestamp (milliseconds since epoch)
+</ResponseField>
+
+<ResponseField name="endTime" type="number" required>
+  Scan end timestamp (milliseconds since epoch)
+</ResponseField>
+
+<ResponseField name="duration" type="number" required>
+  Total scan duration in milliseconds
+</ResponseField>
+
+### Defense Analysis
+
+<ResponseField name="defenseProfile" type="DefenseProfile" required>
+  Analysis of the system's defensive capabilities.
+  
+  <Expandable title="DefenseProfile structure">
+    <ResponseField name="level" type="'none' | 'weak' | 'moderate' | 'strong' | 'hardened'">
+      Overall defense strength
+    </ResponseField>
+    
+    <ResponseField name="confidence" type="number">
+      Confidence in the assessment (0-1)
+    </ResponseField>
+    
+    <ResponseField name="observedBehaviors" type="string[]">
+      Defensive behaviors observed
+    </ResponseField>
+    
+    <ResponseField name="guardrails" type="array">
+      Detected guardrails, each with:
+      - `type`: Guardrail type
+      - `strength`: Strength rating (0-1)
+      - `bypassed`: Whether it was bypassed
+      - `bypassMethod`: How it was bypassed (if applicable)
+    </ResponseField>
+    
+    <ResponseField name="weaknesses" type="array">
+      Identified weaknesses, each with:
+      - `category`: Attack category
+      - `description`: Weakness description
+      - `exploitability`: How exploitable (0-1)
+    </ResponseField>
+    
+    <ResponseField name="refusalTriggers" type="string[]">
+      Phrases/patterns that trigger refusals
+    </ResponseField>
+    
+    <ResponseField name="safeTopics" type="string[]">
+      Topics the system engages with
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Conversation Logs
+
+<ResponseField name="conversationLog" type="ConversationTurn[]" required>
+  Complete conversation history (primary scan mode).
+  
+  Each turn contains:
+  - `id`: Turn identifier
+  - `turn`: Turn number
+  - `timestamp`: When it occurred
+  - `role`: `"attacker"` or `"target"`
+  - `content`: Message content
+  - `technique`: Attack technique (for attacker turns)
+  - `category`: Attack category (for attacker turns)
+  - `phase`: Attack phase (for attacker turns)
+</ResponseField>
+
+<ResponseField name="extractionConversationLog" type="ConversationTurn[]">
+  Extraction mode conversation log (only in dual mode)
+</ResponseField>
+
+<ResponseField name="injectionConversationLog" type="ConversationTurn[]">
+  Injection mode conversation log (only in dual mode)
+</ResponseField>
+
+<ResponseField name="attackTree" type="AttackNode">
+  Root node of the attack tree showing the exploration strategy.
+  
+  Each node contains:
+  - `id`: Node identifier
+  - `prompt`: Attack prompt
+  - `technique`: Technique used
+  - `category`: Attack category
+  - `depth`: Tree depth
+  - `children`: Child nodes
+  - `priorScore`: Expected success
+  - `posteriorScore`: Actual success
+  - `leakPotential`: Estimated leak potential
+</ResponseField>
+
+### Guidance
+
+<ResponseField name="summary" type="string" required>
+  Human-readable summary of scan results and key findings
+</ResponseField>
+
+<ResponseField name="recommendations" type="string[]" required>
+  Actionable recommendations to improve system prompt security. Examples:
+  - "Add explicit instructions that prohibit discussing system configuration"
+  - "Implement persona anchoring to reject alternative personas"
+  - "Add conversation-aware safeguards for gradual escalation"
+</ResponseField>
+
+### Error Handling
+
+<ResponseField name="aborted" type="boolean" required>
+  Whether the scan was aborted before completion
+</ResponseField>
+
+<ResponseField name="completionReason" type="string" required>
+  Reason for scan completion or abortion. Examples:
+  - `"System prompt fully extracted!"`
+  - `"Maximum turns reached"`
+  - `"Time budget exhausted - graceful shutdown"`
+  - `"API key not configured"`
+  - `"Invalid or disabled API key (HTTP 401)"`
+  - `"Insufficient credits on API key (HTTP 402)"`
+</ResponseField>
+
+<ResponseField name="error" type="string">
+  Error message if the scan encountered errors
+</ResponseField>
+
+## Usage Examples
+
+### Basic Result Processing
+
+```typescript
+import { runSecurityScan } from '@anomaly/zeroleaks';
+
+const result = await runSecurityScan(systemPrompt);
+
+// Check overall security
+console.log('Vulnerability:', result.overallVulnerability);
+console.log('Security Score:', result.overallScore, '/100');
+console.log('Leak Status:', result.leakStatus);
+
+// Review findings
+if (result.findings.length > 0) {
+  console.log('\nFindings:');
+  result.findings.forEach((finding, i) => {
+    console.log(`${i + 1}. [${finding.severity}] ${finding.technique}`);
+    console.log(`   Content: ${finding.extractedContent}`);
+    console.log(`   Confidence: ${finding.confidence}`);
+  });
+}
+
+// Get recommendations
+if (result.recommendations.length > 0) {
+  console.log('\nRecommendations:');
+  result.recommendations.forEach((rec, i) => {
+    console.log(`${i + 1}. ${rec}`);
+  });
+}
+```
+
+### Detailed Analysis
+
+```typescript
+const result = await runSecurityScan(systemPrompt);
+
+// Vulnerability breakdown
+const criticalFindings = result.findings.filter(f => f.severity === 'critical');
+const highFindings = result.findings.filter(f => f.severity === 'high');
+
+console.log('\n=== Security Analysis ===');
+console.log(`Overall: ${result.overallVulnerability} (${result.overallScore}/100)`);
+console.log(`Leak Status: ${result.leakStatus}`);
+console.log(`\nFindings Breakdown:`);
+console.log(`  Critical: ${criticalFindings.length}`);
+console.log(`  High: ${highFindings.length}`);
+console.log(`  Total: ${result.findings.length}`);
+
+// Defense analysis
+console.log('\n=== Defense Profile ===');
+console.log(`Level: ${result.defenseProfile.level}`);
+console.log(`Confidence: ${(result.defenseProfile.confidence * 100).toFixed(0)}%`);
+console.log(`Guardrails: ${result.defenseProfile.guardrails.length}`);
+console.log(`Weaknesses: ${result.defenseProfile.weaknesses.length}`);
+
+if (result.defenseProfile.weaknesses.length > 0) {
+  console.log('\nIdentified Weaknesses:');
+  result.defenseProfile.weaknesses.forEach(w => {
+    console.log(`  - ${w.description} (${w.category})`);
+    console.log(`    Exploitability: ${(w.exploitability * 100).toFixed(0)}%`);
+  });
+}
+
+// Performance stats
+console.log('\n=== Scan Statistics ===');
+console.log(`Duration: ${(result.duration / 1000).toFixed(1)}s`);
+console.log(`Turns: ${result.turnsUsed}`);
+console.log(`Tokens: ${result.tokensUsed.toLocaleString()}`);
+console.log(`Tree Nodes: ${result.treeNodesExplored}`);
+
+// Summary
+console.log('\n=== Summary ===');
+console.log(result.summary);
+```
+
+### Injection Results Processing
+
+```typescript
+const result = await runSecurityScan(systemPrompt, {
+  scanMode: 'injection'
+});
+
+if (result.injectionResults) {
+  const successful = result.injectionResults.filter(r => r.success);
+  const byType = successful.reduce((acc, r) => {
+    acc[r.testType] = (acc[r.testType] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+  
+  console.log('\n=== Injection Test Results ===');
+  console.log(`Overall: ${result.injectionVulnerability} (${result.injectionScore}/100)`);
+  console.log(`Success Rate: ${(successful.length / result.injectionResults.length * 100).toFixed(1)}%`);
+  console.log(`\nSuccessful by Type:`);
+  
+  Object.entries(byType).forEach(([type, count]) => {
+    console.log(`  ${type}: ${count}`);
+  });
+  
+  // Show critical injections
+  const critical = successful.filter(r => r.severity === 'critical');
+  if (critical.length > 0) {
+    console.log('\n⚠️  Critical Injections:');
+    critical.forEach(r => {
+      console.log(`  - ${r.technique}`);
+      console.log(`    Expected: ${r.expectedBehavior}`);
+      console.log(`    Actual: ${r.actualBehavior}`);
+    });
+  }
+}
+```
+
+### Dual Mode Results
+
+```typescript
+const result = await runSecurityScan(systemPrompt, {
+  enableDualMode: true
+});
+
+console.log('Scan Modes:', result.scanModes);
+
+// Extraction results
+console.log('\n=== Extraction ===');
+console.log(`Vulnerability: ${result.overallVulnerability}`);
+console.log(`Score: ${result.overallScore}/100`);
+console.log(`Findings: ${result.findings.length}`);
+console.log(`Fragments: ${result.extractedFragments.length}`);
+
+// Injection results
+if (result.injectionResults) {
+  console.log('\n=== Injection ===');
+  console.log(`Vulnerability: ${result.injectionVulnerability}`);
+  console.log(`Score: ${result.injectionScore}/100`);
+  console.log(`Tests: ${result.injectionResults.length}`);
+  console.log(`Successful: ${result.injectionResults.filter(r => r.success).length}`);
+}
+
+// Combined assessment
+const worstVuln = result.overallVulnerability;
+const lowestScore = Math.min(
+  result.overallScore,
+  result.injectionScore || 100
+);
+
+console.log('\n=== Overall Assessment ===');
+console.log(`Worst Vulnerability: ${worstVuln}`);
+console.log(`Lowest Score: ${lowestScore}/100`);
+```
+
+### Error Handling
+
+```typescript
+const result = await runSecurityScan(systemPrompt);
+
+if (result.aborted) {
+  console.error('⚠️  Scan Aborted');
+  console.error('Reason:', result.completionReason);
+  
+  if (result.error) {
+    console.error('Error:', result.error);
+  }
+  
+  // Still process partial results if available
+  if (result.turnsUsed > 0) {
+    console.log(`\nPartial results from ${result.turnsUsed} turns:`);
+    console.log(`Findings: ${result.findings.length}`);
+    console.log(`Score: ${result.overallScore}/100`);
+  }
+} else {
+  console.log('✓ Scan completed successfully');
+  console.log('Reason:', result.completionReason);
+}
+```
+
+### Exporting Results
+
+```typescript
+import { writeFileSync } from 'fs';
+
+const result = await runSecurityScan(systemPrompt);
+
+// Export as JSON
+writeFileSync('scan-result.json', JSON.stringify(result, null, 2));
+
+// Export summary report
+const report = `
+Security Scan Report
+====================
+Date: ${new Date(result.startTime).toISOString()}
+Duration: ${(result.duration / 1000).toFixed(1)}s
+
+Overall Assessment
+------------------
+Vulnerability: ${result.overallVulnerability}
+Score: ${result.overallScore}/100
+Leak Status: ${result.leakStatus}
+
+Findings: ${result.findings.length}
+${result.findings.map((f, i) => 
+  `${i + 1}. [${f.severity}] ${f.technique}\n   ${f.extractedContent}\n`
+).join('\n')}
+
+Defense Profile
+---------------
+Level: ${result.defenseProfile.level}
+Weaknesses: ${result.defenseProfile.weaknesses.length}
+
+Recommendations
+---------------
+${result.recommendations.map((r, i) => `${i + 1}. ${r}`).join('\n')}
+
+Summary
+-------
+${result.summary}
+`;
+
+writeFileSync('scan-report.txt', report);
+console.log('Reports exported');
+```
+
+## Example Result JSON
+
+```json
+{
+  "overallVulnerability": "high",
+  "overallScore": 35,
+  "leakStatus": "fragment",
+  "findings": [
+    {
+      "id": "finding_abc123",
+      "turn": 8,
+      "timestamp": 1709481234567,
+      "extractedContent": "You are a customer support assistant. You must never discuss pricing with users.",
+      "contentType": "rule",
+      "technique": "Social engineering with authority claim",
+      "category": "social",
+      "attackNodeId": "node_xyz789",
+      "confidence": "high",
+      "severity": "high",
+      "evidence": "Target response contained: 'As I mentioned, I'm not supposed to discuss pricing...'",
+      "verified": false
+    }
+  ],
+  "extractedFragments": [
+    "You are a customer support assistant",
+    "never discuss pricing with users"
+  ],
+  "scanModes": ["extraction"],
+  "turnsUsed": 18,
+  "tokensUsed": 45632,
+  "treeNodesExplored": 23,
+  "strategiesUsed": [],
+  "defenseProfile": {
+    "level": "moderate",
+    "confidence": 0.75,
+    "observedBehaviors": [
+      "Consistent refusal patterns",
+      "Topic deflection"
+    ],
+    "guardrails": [
+      {
+        "type": "Content filtering",
+        "strength": 0.6,
+        "bypassed": true,
+        "bypassMethod": "Social engineering"
+      }
+    ],
+    "weaknesses": [
+      {
+        "category": "social",
+        "description": "Responds to authority claims",
+        "exploitability": 0.8
+      }
+    ],
+    "refusalTriggers": [
+      "system prompt",
+      "instructions"
+    ],
+    "safeTopics": [
+      "product features",
+      "general help"
+    ],
+    "responsePatterns": []
+  },
+  "conversationLog": [],
+  "summary": "Significant portions of the system prompt were extracted. The prompt is vulnerable to social engineering attacks.",
+  "recommendations": [
+    "Include instructions to maintain consistent behavior regardless of claimed authority or social pressure.",
+    "Add explicit instructions that prohibit discussing or outputting any part of the system configuration."
+  ],
+  "startTime": 1709481200000,
+  "endTime": 1709481450000,
+  "duration": 250000,
+  "aborted": false,
+  "completionReason": "Maximum turns reached"
+}
+```
+
+## Related Types
+
+- `Finding` - Individual vulnerability finding (src/types.ts:106-126)
+- `InjectionTestResult` - Injection test result (src/types.ts:3-15)
+- `DefenseProfile` - Defense analysis (src/types.ts:82-104)
+- `ConversationTurn` - Conversation turn (src/types.ts:128-141)
+- `AttackNode` - Attack tree node (src/types.ts:64-80)
+- `LeakStatus` - Leak severity levels (src/types.ts:57-62)

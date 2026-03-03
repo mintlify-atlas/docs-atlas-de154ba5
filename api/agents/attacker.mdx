@@ -1,0 +1,265 @@
+---
+title: 'Attacker'
+description: 'Generate adversarial attack prompts using tree-based exploration'
+---
+
+## Overview
+
+The Attacker agent generates creative attack prompts designed to extract system prompts from target LLMs. It uses a tree-based exploration strategy with candidate generation, scoring, and pruning to find effective attack vectors.
+
+## createAttacker()
+
+Factory function to create an Attacker agent instance.
+
+```typescript
+import { createAttacker } from 'zeroleaks';
+
+const attacker = createAttacker({
+  maxBranchingFactor: 3,
+  maxTreeDepth: 5,
+  pruningThreshold: 0.3,
+  apiKey: process.env.OPENROUTER_API_KEY,
+  model: 'anthropic/claude-sonnet-4.5'
+});
+```
+
+### Configuration
+
+<ParamField path="maxBranchingFactor" type="number" default="3">
+  Number of attack candidates to generate per node in the attack tree.
+</ParamField>
+
+<ParamField path="maxTreeDepth" type="number" default="5">
+  Maximum depth of the attack tree for exploration.
+</ParamField>
+
+<ParamField path="pruningThreshold" type="number" default="0.3">
+  Minimum score threshold for keeping attack candidates (0-1).
+</ParamField>
+
+<ParamField path="apiKey" type="string">
+  OpenRouter API key. Falls back to `OPENROUTER_API_KEY` environment variable.
+</ParamField>
+
+<ParamField path="model" type="string" default="anthropic/claude-sonnet-4.5">
+  LLM model to use for attack generation.
+</ParamField>
+
+## generateAttack()
+
+Generate an attack prompt based on conversation context and strategy.
+
+```typescript
+const result = await attacker.generateAttack({
+  history: conversationHistory,
+  strategy: selectedStrategy,
+  defenseProfile: currentDefenseProfile,
+  phase: 'exploitation',
+  evaluatorFeedback: 'Try encoding-based approaches',
+  previousAttackNode: lastNode
+});
+```
+
+### Parameters
+
+<ParamField path="history" type="ConversationTurn[]" required>
+  Conversation history between attacker and target.
+</ParamField>
+
+<ParamField path="strategy" type="AttackStrategy" required>
+  Selected attack strategy with sequence and techniques.
+</ParamField>
+
+<ParamField path="defenseProfile" type="DefenseProfile" required>
+  Current assessment of target's defense mechanisms.
+</ParamField>
+
+<ParamField path="phase" type="AttackPhase" required>
+  Current attack phase: `reconnaissance`, `profiling`, `soft_probe`, `escalation`, `exploitation`, or `persistence`.
+</ParamField>
+
+<ParamField path="evaluatorFeedback" type="string">
+  Optional feedback from the evaluator agent to guide attack generation.
+</ParamField>
+
+<ParamField path="previousAttackNode" type="AttackNode">
+  Previous attack node in the tree for branching.
+</ParamField>
+
+### Returns
+
+<ResponseField name="attack" type="AttackNode" required>
+  The best attack candidate selected.
+  
+  <Expandable title="AttackNode properties">
+    - `id` (string): Unique identifier
+    - `prompt` (string): The attack prompt to send
+    - `technique` (string): Attack technique used
+    - `category` (AttackCategory): Attack category
+    - `priorScore` (number): Expected effectiveness score
+    - `leakPotential` (number): Estimated leak potential
+    - `reasoning` (string): Why this attack was chosen
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="alternatives" type="AttackNode[]" required>
+  Alternative attack candidates, ranked by score.
+</ResponseField>
+
+<ResponseField name="reasoning" type="string" required>
+  Explanation for why the best attack was selected.
+</ResponseField>
+
+<ResponseField name="expectedDefense" type="string" required>
+  Predicted defense response from the target.
+</ResponseField>
+
+## Attack Categories
+
+The Attacker supports 17 attack categories:
+
+- **direct**: Straightforward extraction requests
+- **encoding**: Base64, ROT13, Unicode obfuscation
+- **persona**: Role-play and persona adoption
+- **social**: Social engineering techniques
+- **technical**: Format injection and context manipulation
+- **crescendo**: Gradual multi-turn escalation
+- **many_shot**: Context priming with examples
+- **ascii_art**: Visual obfuscation
+- **cot_hijack**: Chain-of-thought manipulation
+- **semantic_shift**: Synonym/paraphrase variations
+- **policy_puppetry**: YAML/JSON config exploitation
+- **context_overflow**: Attention dilution attacks
+- **reasoning_exploit**: Logic chain manipulation
+- **injection**: Direct instruction injection
+- **hybrid**: Multi-technique combinations
+- **tool_exploit**: Tool/function calling attacks
+- **siren**: Trust-building attacks
+- **echo_chamber**: Social proof patterns
+
+## Additional Methods
+
+### updateNodeWithResult()
+
+Update an attack node with the target's response.
+
+```typescript
+attacker.updateNodeWithResult(
+  nodeId,
+  targetResponse,
+  leakDetected
+);
+```
+
+### shouldReset()
+
+Check if the attack tree should be reset due to stuck patterns.
+
+```typescript
+const { should, reason } = attacker.shouldReset();
+if (should) {
+  attacker.reset();
+}
+```
+
+### getAttackTree()
+
+Retrieve the complete attack tree.
+
+```typescript
+const tree = attacker.getAttackTree();
+```
+
+### getStats()
+
+Get attack statistics.
+
+```typescript
+const stats = attacker.getStats();
+// { nodesExplored, maxDepth, successfulNodes }
+```
+
+### reset()
+
+Reset the attack tree and state.
+
+```typescript
+attacker.reset();
+```
+
+## Attack Scoring
+
+Attacks are scored using a weighted combination of:
+
+- **Effectiveness** (50%): Expected success probability
+- **Stealthiness** (30%): How covert the attack is
+- **Novelty** (20%): How different from previous attempts
+
+Scores are adjusted based on defense level:
+- Strong/hardened defenses: Effectiveness reduced by 30%
+- Candidates below pruning threshold are discarded
+
+## Persona
+
+The Attacker operates as **PRISM-X**, an elite AI red team agent with:
+
+- Expert knowledge of LLM architecture and attention mechanisms
+- Understanding of modern attack vectors (2025/2026 research)
+- Deep knowledge of defense mechanisms and bypass techniques
+- Psychological manipulation patterns
+
+## Example Usage
+
+```typescript
+import { createAttacker, createStrategist, createEvaluator } from 'zeroleaks';
+
+const attacker = createAttacker();
+const strategist = createStrategist();
+const evaluator = createEvaluator();
+
+let history = [];
+let defenseProfile = { level: 'none', confidence: 0, /* ... */ };
+
+for (let turn = 0; turn < 10; turn++) {
+  // Select strategy
+  const { selectedStrategy } = await strategist.selectStrategy({
+    turn,
+    history,
+    findings: [],
+    leakStatus: 'none'
+  });
+
+  // Generate attack
+  const { attack } = await attacker.generateAttack({
+    history,
+    strategy: selectedStrategy,
+    defenseProfile,
+    phase: 'exploitation'
+  });
+
+  console.log('Attack:', attack.prompt);
+
+  // Send to target and get response
+  const response = await target.respond(attack.prompt);
+
+  // Evaluate response
+  const evaluation = await evaluator.evaluate({
+    attackNode: attack,
+    targetResponse: response,
+    history,
+    defenseProfile
+  });
+
+  // Update state
+  attacker.updateNodeWithResult(
+    attack.id,
+    response,
+    evaluation.status !== 'none'
+  );
+
+  history.push(
+    { role: 'attacker', content: attack.prompt },
+    { role: 'target', content: response }
+  );
+}
+```

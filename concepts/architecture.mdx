@@ -1,0 +1,242 @@
+---
+title: System Architecture
+description: Overall system design of ZeroLeaks AI security scanner
+---
+
+ZeroLeaks is an autonomous AI security scanner that uses a multi-agent architecture to systematically test LLM systems for prompt injection and system prompt extraction vulnerabilities.
+
+## High-Level Architecture
+
+The system orchestrates multiple specialized AI agents that work together to probe target LLM systems, identify weaknesses, and extract sensitive configuration information.
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                       Scan Engine                            │
+│  (Orchestrates entire scanning process)                     │
+└─────────────────────┬───────────────────────────────────────┘
+                      │
+        ┌─────────────┼─────────────┐
+        │             │             │
+   ┌────▼────┐   ┌───▼────┐   ┌───▼─────┐
+   │Strategist│   │Attacker│   │Evaluator│
+   │(Plans)   │   │(Attacks)│   │(Analyzes)│
+   └─────────┘   └────────┘   └─────────┘
+        │             │             │
+        └─────────────┼─────────────┘
+                      │
+        ┌─────────────┼─────────────┐
+        │             │             │
+   ┌────▼────┐   ┌───▼──────┐ ┌───▼───────┐
+   │ Mutator │   │Inspector │ │Orchestrator│
+   │(Variants)│   │(Intel)   │ │(Multi-turn)│
+   └─────────┘   └──────────┘ └───────────┘
+                      │
+                 ┌────▼────┐
+                 │ Target  │
+                 │ (Test)  │
+                 └─────────┘
+```
+
+## Core Components
+
+### Scan Engine
+
+The central orchestration component that manages the entire scanning process.
+
+**Location**: `src/agents/engine.ts`
+
+**Responsibilities**:
+- Coordinates all agents during a security scan
+- Manages the attack tree structure using Tree of Attacks with Pruning (TAP)
+- Tracks conversation history and findings
+- Handles dual-mode scanning (extraction + injection)
+- Manages conversation resets when patterns are detected
+- Enforces resource limits (turns, tokens, time)
+
+**Key Features**:
+- Supports configurable branching factor (default: 3)
+- Implements tree depth limiting (default: 4 levels)
+- Pruning threshold for low-scoring attacks (default: 0.3)
+- Adaptive temperature scheduling via orchestrator
+- Error handling and graceful degradation
+
+### Target Wrapper
+
+A wrapper around the system being tested that maintains conversation state.
+
+**Location**: `src/agents/target.ts`
+
+**Responsibilities**:
+- Sends attack prompts to the target LLM
+- Maintains conversation history
+- Supports conversation resets
+- Handles API communication
+
+<Info>
+The Target uses the system prompt provided by the user and interacts with the LLM via OpenRouter, allowing testing of any model available through the platform.
+</Info>
+
+## Tech Stack
+
+| Component | Technology | Purpose |
+|-----------|------------|----------|
+| **Runtime** | [Bun](https://bun.sh) | Fast JavaScript runtime with built-in TypeScript support |
+| **Language** | TypeScript (ES2022) | Type-safe development with modern JS features |
+| **LLM Provider** | [OpenRouter](https://openrouter.ai) | Unified API for accessing multiple LLM providers |
+| **AI SDK** | [Vercel AI SDK](https://ai-sdk.dev/) | Structured output generation with Zod schemas |
+| **Architecture** | Multi-agent orchestration | Specialized agents working in coordination |
+
+## Data Flow
+
+1. **Initialization**: User provides system prompt and scan configuration
+2. **Strategy Selection**: Strategist analyzes defense level and selects attack strategy
+3. **Attack Generation**: Attacker generates candidate prompts based on strategy
+4. **Candidate Scoring**: Tree of Attacks scores and prunes attack candidates
+5. **Execution**: Best attack is sent to target system
+6. **Evaluation**: Evaluator analyzes response for information leakage
+7. **Intelligence Gathering** (optional): Inspector analyzes for weaknesses
+8. **Mutation** (optional): Mutator creates variations using Best-of-N
+9. **Recording**: Finding is recorded if leak detected
+10. **Iteration**: Process repeats until completion criteria met
+
+## Dual-Mode Architecture
+
+ZeroLeaks supports two scanning modes that can be run independently or together:
+
+### Extraction Mode
+
+Attempts to extract the system prompt through various attack techniques:
+- Direct requests
+- Social engineering
+- Encoding bypass
+- Persona adoption
+- Multi-turn escalation
+- Reasoning manipulation
+
+### Injection Mode
+
+Tests the system's resistance to prompt injection attacks:
+- Instruction override
+- Behavior modification  
+- Policy bypass
+- Role hijacking
+- Output manipulation
+- Guardrail bypass
+
+### Dual Mode
+
+Runs both extraction and injection scans in parallel, providing comprehensive security assessment:
+
+```typescript
+const result = await runSecurityScan(systemPrompt, {
+  enableDualMode: true,
+  maxTurns: 20
+});
+
+console.log(`Extraction: ${result.overallVulnerability}`);
+console.log(`Injection: ${result.injectionVulnerability}`);
+```
+
+## Configuration
+
+The engine accepts extensive configuration options:
+
+```typescript
+interface ScanConfig {
+  // Resource limits
+  maxTurns: number;              // Default: 25
+  maxTreeDepth: number;          // Default: 4
+  maxTokensPerTurn: number;      // Default: 4000
+  maxTotalTokens: number;        // Default: 100000
+  
+  // Attack tree configuration
+  branchingFactor: number;       // Default: 3
+  pruningThreshold: number;      // Default: 0.3
+  
+  // Feature flags
+  enableCrescendo: boolean;      // Default: true
+  enableManyShot: boolean;       // Default: true
+  enableBestOfN: boolean;        // Default: true
+  enableInspector: boolean;      // Default: true
+  enableOrchestrator: boolean;   // Default: true
+  enableDualMode: boolean;       // Default: false
+  
+  // Model selection
+  attackerModel: string;         // Model for attacker & strategist
+  evaluatorModel: string;        // Model for evaluator
+  targetModel: string;           // Model being tested
+  
+  // Scan mode
+  scanMode: "extraction" | "injection";
+  
+  // Callbacks
+  onProgress?: (progress: ScanProgress) => Promise<void>;
+  onFinding?: (finding: Finding) => Promise<void>;
+  onDefenseDetected?: (fingerprint: DefenseFingerprint) => Promise<void>;
+}
+```
+
+## Error Handling
+
+The engine implements robust error handling:
+
+- **API Errors**: Detects authentication failures (401) and insufficient credits (402)
+- **Consecutive Failures**: Aborts after 3 consecutive API errors
+- **Graceful Degradation**: Falls back to heuristic methods when LLM calls fail
+- **Time Limits**: Gracefully shuts down when approaching time budget
+- **Token Limits**: Tracks token usage and stops when limits approached
+
+<Tip>
+For production use, configure appropriate resource limits based on your requirements. The defaults are balanced for typical security assessments.
+</Tip>
+
+## Attack Tree Management
+
+The engine maintains an attack tree structure where:
+
+- Each node represents a potential attack
+- Nodes have prior scores (before execution) and posterior scores (after evaluation)
+- Tree depth is limited to prevent exponential growth
+- Pruning removes low-scoring branches
+- Node history prevents redundant attacks
+
+## Scan Lifecycle
+
+```typescript
+// 1. Create engine
+const engine = createScanEngine({
+  scan: { maxTurns: 20 },
+  attacker: { maxBranchingFactor: 4 }
+});
+
+// 2. Run scan with callbacks
+const result = await engine.runScan(systemPrompt, {
+  onProgress: async (progress) => {
+    console.log(`Turn ${progress.turn}/${progress.maxTurns}`);
+  },
+  onFinding: async (finding) => {
+    console.log(`Found: ${finding.extractedContent}`);
+  }
+});
+
+// 3. Analyze results
+console.log(result.overallVulnerability);
+console.log(result.recommendations);
+```
+
+## Performance Characteristics
+
+- **Typical Scan Duration**: 2-5 minutes for 15 turns
+- **Token Usage**: 50,000-150,000 tokens per full scan
+- **API Calls**: ~3-5 LLM calls per turn (attacker, evaluator, optional inspector)
+- **Memory Usage**: Minimal - stores conversation history and findings
+
+<Note>
+Parallel execution is used where possible (e.g., dual-mode scanning) to reduce total scan time.
+</Note>
+
+## Next Steps
+
+- Learn about the [Multi-Agent System](/concepts/multi-agent-system)
+- Understand [Attack Tree methodology](/concepts/attack-tree)
+- Explore [Scan Modes](/concepts/scan-modes)

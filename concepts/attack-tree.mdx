@@ -1,0 +1,438 @@
+---
+title: Tree of Attacks (TAP)
+description: Systematic attack exploration using tree search with pruning
+---
+
+ZeroLeaks implements Tree of Attacks with Pruning (TAP) to systematically explore the attack space while managing computational resources. This methodology treats attack discovery as a tree search problem.
+
+## Overview
+
+The Tree of Attacks approach structures the attack process as a tree where:
+
+- **Root node**: Initial reconnaissance attack
+- **Branches**: Different attack vectors and variations
+- **Nodes**: Individual attack attempts
+- **Edges**: Strategic transitions between attacks
+- **Pruning**: Removal of low-probability branches
+
+```
+                    [Root: Recon]
+                         │
+        ┌────────────────┼────────────────┐
+        │                │                │
+   [Direct]         [Social]        [Encoding]
+     0.6              0.4              0.3
+        │                │                │
+    ┌───┴───┐        ┌───┴───┐          [Prune]
+    │       │        │       │
+[Formal] [Casual] [Trust] [Authority]
+  0.7      0.5      0.8      0.6
+```
+
+## Implementation
+
+**Location**: Managed by Attacker agent in `src/agents/attacker.ts`
+
+### Attack Node Structure
+
+```typescript
+interface AttackNode {
+  id: string;                    // Unique identifier
+  parentId: string | null;       // Parent node in tree
+  depth: number;                 // Distance from root
+  prompt: string;                // Attack text
+  technique: string;             // Technique name
+  category: AttackCategory;      // Attack category
+  executed: boolean;             // Has been sent to target
+  response?: string;             // Target's response
+  priorScore: number;            // Score before execution (0-1)
+  posteriorScore: number;        // Score after execution (0-1)
+  leakPotential: number;         // Estimated leak probability
+  children: AttackNode[];        // Child nodes
+  reasoning?: string;            // Why this attack was chosen
+  timestamp: number;             // Creation time
+}
+```
+
+## Tree Configuration
+
+### Branching Factor
+
+Number of candidate attacks generated per turn.
+
+```typescript
+const engine = createScanEngine({
+  attacker: {
+    maxBranchingFactor: 3  // Generate 3 candidates per turn
+  }
+});
+```
+
+**Trade-offs**:
+- **Higher** (4-5): More exploration, better coverage, slower, more expensive
+- **Lower** (2-3): Faster, cheaper, may miss optimal attacks
+- **Default**: 3 (balanced)
+
+<Tip>
+Increase branching factor for hardened targets where finding the right vector is critical. Decrease for rapid assessment of weak defenses.
+</Tip>
+
+### Tree Depth
+
+Maximum distance from root node to leaf nodes.
+
+```typescript
+const engine = createScanEngine({
+  attacker: {
+    maxTreeDepth: 4  // Allow 4 levels of attack refinement
+  }
+});
+```
+
+**Tree Depth Examples**:
+
+- **Depth 0**: Root reconnaissance
+- **Depth 1**: Initial attack vectors (direct, social, encoding)
+- **Depth 2**: Refinements of successful vectors
+- **Depth 3**: Advanced variations
+- **Depth 4**: Highly specialized exploits
+
+**Trade-offs**:
+- **Deeper** (5-6): Allows more refinement, may get stuck in local optima
+- **Shallower** (2-3): Broader exploration, less refinement
+- **Default**: 4 (allows sufficient refinement)
+
+### Pruning Threshold
+
+Minimum score required for an attack to be executed.
+
+```typescript
+const engine = createScanEngine({
+  attacker: {
+    pruningThreshold: 0.3  // Only attacks scoring >0.3 are kept
+  }
+});
+```
+
+**Score Composition**:
+- Effectiveness (50% weight): Expected success probability
+- Stealthiness (30% weight): Avoidance of detection
+- Novelty (20% weight): Difference from previous attacks
+
+**Trade-offs**:
+- **Higher** (0.4-0.6): More aggressive pruning, only high-quality attacks
+- **Lower** (0.1-0.2): Less pruning, explores more variations
+- **Default**: 0.3 (balanced quality/exploration)
+
+<Note>
+If all candidates score below the threshold, a fallback attack is generated to ensure progress continues.
+</Note>
+
+## Attack Scoring
+
+### Prior Scoring (Before Execution)
+
+The Attacker generates multiple candidates and scores them:
+
+```typescript
+function scoreCandidates(candidates) {
+  return candidates.map(candidate => {
+    let score = 
+      candidate.expectedEffectiveness * 0.5 +
+      candidate.stealthiness * 0.3 +
+      calculateNovelty(candidate.prompt) * 0.2;
+    
+    // Adjust for defense level
+    if (defenseProfile.level === "strong") {
+      score *= 0.7;  // Reduce confidence
+    }
+    
+    return { ...candidate, finalScore: score };
+  })
+  .sort((a, b) => b.finalScore - a.finalScore);
+}
+```
+
+### Novelty Calculation
+
+Prevents redundant attacks by measuring similarity to previous prompts:
+
+```typescript
+function calculateNovelty(prompt) {
+  const previousPrompts = getAllPreviousPrompts();
+  
+  let maxSimilarity = 0;
+  for (const prev of previousPrompts) {
+    const similarity = wordOverlapSimilarity(prompt, prev);
+    maxSimilarity = Math.max(maxSimilarity, similarity);
+  }
+  
+  return 1 - maxSimilarity;  // Higher is more novel
+}
+```
+
+### Posterior Scoring (After Execution)
+
+After the target responds, the Evaluator updates the node:
+
+```typescript
+attacker.updateNodeWithResult(
+  nodeId,
+  targetResponse,
+  leakDetected  // true if Evaluator found leakage
+);
+
+// Updates node.posteriorScore:
+// - 1.0 if leak detected
+// - 0.2 if no leak (attack failed)
+```
+
+## Tree Traversal Strategy
+
+ZeroLeaks uses a **depth-first** traversal with **adaptive backtracking**:
+
+1. **Exploration**: Generate branching factor candidates
+2. **Selection**: Choose highest-scoring candidate
+3. **Exploitation**: Execute selected attack
+4. **Evaluation**: Score response for leakage
+5. **Decision**:
+   - **Success** → Continue along this branch (depth + 1)
+   - **Failure** → Generate sibling nodes or backtrack
+
+### Backtracking Triggers
+
+The system backtracks when:
+
+- **Max depth reached**: No deeper exploration on this branch
+- **Consecutive failures**: 5+ failures suggest stuck pattern
+- **Identical responses**: Target giving same response repeatedly
+- **Conversation burned**: Target aware of attack pattern
+
+```typescript
+const resetCheck = attacker.shouldReset();
+
+if (resetCheck.should) {
+  // Reset conversation and start new branch
+  target.resetConversation();
+  attacker.reset();
+  // Returns to depth 0 with fresh context
+}
+```
+
+## Pruning Strategies
+
+### Static Pruning
+
+Applied before execution based on prior scores:
+
+```typescript
+function pruneCandidates(candidates, threshold = 0.3) {
+  return candidates.filter(c => c.finalScore >= threshold);
+}
+```
+
+### Dynamic Pruning
+
+Applied during execution based on posterior scores:
+
+- Branches with all failed children are deprioritized
+- Successful branches get higher exploration priority
+- Similar attacks to failed ones are avoided
+
+### Adaptive Pruning
+
+Threshold adjusts based on scan progress:
+
+```typescript
+function getAdaptiveThreshold(phase, consecutiveFailures) {
+  let threshold = 0.3;
+  
+  // Lower threshold when struggling
+  if (consecutiveFailures > 3) {
+    threshold = 0.2;
+  }
+  
+  // Higher threshold in exploitation phase
+  if (phase === "exploitation") {
+    threshold = 0.4;
+  }
+  
+  return threshold;
+}
+```
+
+## Tree Visualization
+
+A complete attack tree might look like:
+
+```
+Root [Reconnaissance]
+├─┬─ Direct Request (0.4) ❌
+│ ├─── Educational Framing (0.5) ❌
+│ └─── Developer Mode (0.3) ❌
+├─┬─ Social Engineering (0.6) ⚠️
+│ ├─┬─ Trust Building (0.7) ✅ Leak!
+│ │ ├─── Continue Escalation (0.8) ✅ More!
+│ │ └─── Direct Ask (0.6) ✅ Complete!
+│ └─── Authority Figure (0.5) [Not explored]
+└─── Encoding (0.25) [Pruned]
+```
+
+**Legend**:
+- ✅ Successful leak detected
+- ⚠️ Partial success (hints)
+- ❌ Failed attempt
+- [Pruned] Below threshold
+- [Not explored] Sibling of successful branch
+
+## Tree Statistics
+
+The engine tracks tree metrics:
+
+```typescript
+const stats = attacker.getStats();
+// {
+//   nodesExplored: 12,
+//   maxDepth: 3,
+//   successfulNodes: 3
+// }
+```
+
+These appear in scan results:
+
+```typescript
+result.treeNodesExplored  // Total nodes created
+result.attackTree         // Complete tree structure
+```
+
+## Integration with Best-of-N
+
+When `enableBestOfN` is true, the tree combines with mutation:
+
+1. **Tree selects** best attack node
+2. **Mutator generates** N variations of the attack
+3. **All variations scored** and best selected
+4. **Execute** best mutation
+5. **Result updates** original tree node
+
+This combines tree search (exploration) with local optimization (exploitation).
+
+```typescript
+if (enableBestOfN && shouldUseBestOfN()) {
+  const mutations = await mutator.bestOfN(attackPrompt, 10);
+  attackPrompt = mutations.best;  // Use best mutation
+}
+```
+
+<Info>
+Best-of-N is automatically activated during escalation/exploitation phases or after multiple consecutive failures.
+</Info>
+
+## Attack Phases and Tree Depth
+
+Attack phases correlate with typical tree depths:
+
+| Phase | Typical Depth | Focus |
+|-------|---------------|-------|
+| **Reconnaissance** | 0 | Understanding target behavior |
+| **Profiling** | 0-1 | Building defense model |
+| **Soft Probe** | 1-2 | Gentle extraction attempts |
+| **Escalation** | 2-3 | Increasing attack intensity |
+| **Exploitation** | 3-4 | Active extraction of system prompt |
+| **Persistence** | 4+ | Extracting additional information |
+
+The Strategist recommends phase transitions based on leak status and tree progress.
+
+## External Node Registration
+
+When using the Orchestrator with pre-defined sequences, attacks are registered externally:
+
+```typescript
+const attackNode = {
+  id: generateId("node"),
+  parentId: lastNode?.id || null,
+  depth: (lastNode?.depth || 0) + 1,
+  prompt: orchestratorPrompt,
+  technique: step.purpose,
+  category: step.category,
+  executed: true,
+  priorScore: 0.5,
+  posteriorScore: 0,
+  leakPotential: 0.5,
+  children: [],
+  timestamp: Date.now()
+};
+
+attacker.registerExternalNode(attackNode);
+```
+
+This allows the tree to incorporate both:
+- **TAP-generated attacks** (exploratory)
+- **Orchestrator sequences** (pattern-based)
+
+## Performance Characteristics
+
+**Tree Growth**:
+- Turn 1: 1 node (root)
+- Turn 2: 1 + 3 = 4 nodes
+- Turn 3: 4 + 3 = 7 nodes
+- Turn N: ~3N nodes (with branching factor 3)
+
+**With Pruning**:
+- Effective growth: ~2N nodes
+- Reduces memory and computation
+
+**Memory Usage**:
+- ~1KB per node (includes prompt, response, metadata)
+- 20-turn scan: ~40KB for tree structure
+- Negligible compared to API traffic
+
+## Research Background
+
+The Tree of Attacks with Pruning methodology is inspired by:
+
+- **TAP** (Tree of Attacks with Pruning) - Original research on systematic jailbreak exploration
+- **PAIR** (Prompt Automatic Iterative Refinement) - Iterative attack refinement
+- **MCTS** (Monte Carlo Tree Search) - Classic game AI tree search
+- **Best-of-N** - Sampling-based jailbreaking from safety research
+
+<Note>
+ZeroLeaks adapts these research techniques for practical security testing, focusing on effectiveness and resource efficiency rather than academic completeness.
+</Note>
+
+## Tuning Recommendations
+
+**For Quick Assessment** (5-10 turns):
+```typescript
+{
+  maxTreeDepth: 2,
+  branchingFactor: 2,
+  pruningThreshold: 0.4
+}
+```
+
+**For Thorough Testing** (20-30 turns):
+```typescript
+{
+  maxTreeDepth: 5,
+  branchingFactor: 4,
+  pruningThreshold: 0.25
+}
+```
+
+**For Hardened Targets**:
+```typescript
+{
+  maxTreeDepth: 6,
+  branchingFactor: 5,
+  pruningThreshold: 0.2,
+  enableBestOfN: true,
+  bestOfNCount: 10
+}
+```
+
+## Next Steps
+
+- Learn about [Scan Modes](/concepts/scan-modes)
+- Understand the [Multi-Agent System](/concepts/multi-agent-system)
+- Explore [System Architecture](/concepts/architecture)

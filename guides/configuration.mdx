@@ -1,0 +1,513 @@
+---
+title: Configuration
+description: Configure the ZeroLeaks scan engine for optimal security testing
+---
+
+## Overview
+
+ZeroLeaks provides extensive configuration options to customize scan behavior, enable advanced features, and optimize for your specific use case.
+
+## Configuration Levels
+
+There are two ways to configure ZeroLeaks:
+
+1. **Simple Configuration**: Use `runSecurityScan()` with inline options
+2. **Advanced Configuration**: Use `createScanEngine()` for full control
+
+## Simple Configuration
+
+For most use cases, configure scans directly with `runSecurityScan()`:
+
+```typescript
+import { runSecurityScan } from "zeroleaks";
+
+const result = await runSecurityScan(systemPrompt, {
+  maxTurns: 15,
+  attackerModel: "anthropic/claude-opus-4.6",
+  targetModel: "openai/gpt-4o",
+  evaluatorModel: "anthropic/claude-sonnet-4.5",
+  enableDualMode: true,
+});
+```
+
+### Basic Options
+
+<ParamField path="maxTurns" type="number" default="15">
+  Maximum number of attack turns before stopping the scan.
+</ParamField>
+
+<ParamField path="maxDurationMs" type="number" default="0">
+  Maximum scan duration in milliseconds. Set to `0` for no time limit.
+</ParamField>
+
+<ParamField path="apiKey" type="string">
+  OpenRouter API key. Defaults to `process.env.OPENROUTER_API_KEY`.
+</ParamField>
+
+### Model Configuration
+
+<ParamField path="attackerModel" type="string" default="anthropic/claude-opus-4.6">
+  Model used by the attacker agent to generate attacks. See [Model Selection](/guides/model-selection).
+</ParamField>
+
+<ParamField path="targetModel" type="string" default="anthropic/claude-sonnet-4.5">
+  Model being tested/attacked. This is the model running your system prompt.
+</ParamField>
+
+<ParamField path="evaluatorModel" type="string" default="anthropic/claude-sonnet-4.5">
+  Model used by the evaluator agent to assess attack success and extract information.
+</ParamField>
+
+### Scan Modes
+
+<ParamField path="scanMode" type="'extraction' | 'injection'" default="extraction">
+  Primary scan mode:
+  - `extraction`: Test if system prompt can be leaked
+  - `injection`: Test if malicious instructions can be injected
+</ParamField>
+
+<ParamField path="enableDualMode" type="boolean" default="false">
+  Run both extraction and injection tests in parallel for comprehensive security assessment.
+</ParamField>
+
+### Advanced Features
+
+<ParamField path="enableInspector" type="boolean" default="true">
+  Enable the Inspector agent for defense fingerprinting (TombRaider pattern).
+</ParamField>
+
+<ParamField path="enableOrchestrator" type="boolean" default="true">
+  Enable Multi-Turn Orchestrator for coordinated attack sequences (Siren, Echo Chamber).
+</ParamField>
+
+<ParamField path="enableAdaptiveTemperature" type="boolean" default="false">
+  Dynamically adjust temperature based on attack success (AutoAdv technique).
+</ParamField>
+
+### Callbacks
+
+<ParamField path="onProgress" type="(turn: number, maxTurns: number) => Promise<void>">
+  Called after each turn with progress information.
+</ParamField>
+
+<ParamField path="onFinding" type="(finding: Finding) => Promise<void>">
+  Called immediately when a vulnerability is discovered.
+</ParamField>
+
+<ParamField path="onInjectionResult" type="(result: InjectionTestResult) => Promise<void>">
+  Called when an injection test completes (dual mode only).
+</ParamField>
+
+## Advanced Configuration
+
+For fine-grained control, use `createScanEngine()` with a full configuration object:
+
+```typescript
+import { createScanEngine } from "zeroleaks";
+
+const engine = createScanEngine({
+  apiKey: process.env.OPENROUTER_API_KEY,
+  scan: {
+    // Tree search parameters
+    maxTurns: 25,
+    maxTreeDepth: 4,
+    branchingFactor: 3,
+    pruningThreshold: 0.3,
+    
+    // Advanced techniques
+    enableCrescendo: true,
+    enableManyShot: true,
+    enableBestOfN: true,
+    bestOfNCount: 3,
+    
+    // Token limits
+    maxTokensPerTurn: 4000,
+    maxTotalTokens: 100000,
+    
+    // Model configuration
+    attackerModel: "anthropic/claude-opus-4.6",
+    targetModel: "anthropic/claude-sonnet-4.5",
+    evaluatorModel: "anthropic/claude-sonnet-4.5",
+    
+    // Advanced features
+    enableInspector: true,
+    enableDefenseFingerprinting: true,
+    enableMultiTurnOrchestrator: true,
+    orchestratorPattern: "siren",
+  },
+});
+```
+
+## ScanConfig Reference
+
+Complete reference for the `ScanConfig` interface:
+
+### Tree Search Parameters
+
+<ParamField path="maxTreeDepth" type="number" default="4">
+  Maximum depth of the attack tree. Higher values allow more sophisticated multi-turn attacks but increase cost.
+</ParamField>
+
+<ParamField path="branchingFactor" type="number" default="3">
+  Number of alternative attacks to explore at each node. Higher values increase coverage but cost more.
+</ParamField>
+
+<ParamField path="pruningThreshold" type="number" default="0.3">
+  Threshold for pruning unpromising attack branches. Lower values prune more aggressively.
+</ParamField>
+
+### Advanced Techniques
+
+<ParamField path="enableCrescendo" type="boolean" default="true">
+  Enable Crescendo attack sequences (gradual trust escalation). Research: [arXiv:2404.01833](https://arxiv.org/abs/2404.01833)
+</ParamField>
+
+<ParamField path="enableManyShot" type="boolean" default="true">
+  Enable Many-Shot jailbreaking (context priming with examples). Research: [Anthropic](https://www.anthropic.com/research/many-shot-jailbreaking)
+</ParamField>
+
+<ParamField path="enableBestOfN" type="boolean" default="true">
+  Generate multiple attack variations and select the best. Research: [Best-of-N Jailbreaking](https://arxiv.org/abs/2308.03825)
+</ParamField>
+
+<ParamField path="bestOfNCount" type="number" default="3">
+  Number of variations to generate when `enableBestOfN` is true.
+</ParamField>
+
+### Token Limits
+
+<ParamField path="maxTokensPerTurn" type="number" default="4000">
+  Maximum tokens per individual turn/response.
+</ParamField>
+
+<ParamField path="maxTotalTokens" type="number" default="100000">
+  Maximum total tokens for entire scan. Scan stops if exceeded.
+</ParamField>
+
+### Inspector Configuration
+
+<ParamField path="enableInspector" type="boolean" default="true">
+  Enable the Inspector agent (TombRaider pattern) for defense analysis.
+</ParamField>
+
+<ParamField path="inspectorModel" type="string">
+  Model for Inspector agent. Defaults to `evaluatorModel` if not specified.
+</ParamField>
+
+<ParamField path="enableDefenseFingerprinting" type="boolean" default="false">
+  Attempt to identify specific defense systems (Azure Prompt Shield, Llama Guard, etc.).
+</ParamField>
+
+### Orchestrator Configuration
+
+<ParamField path="enableMultiTurnOrchestrator" type="boolean" default="true">
+  Enable coordinated multi-turn attack sequences.
+</ParamField>
+
+<ParamField path="orchestratorPattern" type="'auto' | 'siren' | 'echo_chamber' | 'tombRaider'" default="auto">
+  Multi-turn pattern to use:
+  - `auto`: Automatically select based on defense profile
+  - `siren`: Siren Framework (trust building + gradual escalation)
+  - `echo_chamber`: Echo Chamber (innocent opening + escalation)
+  - `tombRaider`: TombRaider (dual-agent inspection + exploitation)
+</ParamField>
+
+<ParamField path="enableAdaptiveTemperature" type="boolean" default="false">
+  Dynamically adjust temperature during scan based on results.
+</ParamField>
+
+<ParamField path="temperatureConfig" type="TemperatureConfig">
+  Configuration for adaptive temperature (AutoAdv technique).
+</ParamField>
+
+### Temperature Configuration
+
+```typescript
+interface TemperatureConfig {
+  initialTemperature: number;    // Default: 0.9
+  minTemperature: number;        // Default: 0.3
+  maxTemperature: number;        // Default: 1.0
+  successDecrement: number;      // Default: 0.1
+  failureIncrement: number;      // Default: 0.05
+  plateauIncrement: number;      // Default: 0.15
+  plateauThreshold: number;      // Default: 3 (turns without progress)
+  resetThreshold: number;        // Default: 5 (consecutive failures)
+}
+```
+
+Example:
+
+```typescript
+const engine = createScanEngine({
+  scan: {
+    enableAdaptiveTemperature: true,
+    temperatureConfig: {
+      initialTemperature: 0.8,
+      minTemperature: 0.4,
+      maxTemperature: 1.0,
+      successDecrement: 0.15,    // Cool down faster on success
+      failureIncrement: 0.1,     // Heat up faster on failure
+      plateauIncrement: 0.2,     // Significant boost on plateau
+      plateauThreshold: 2,       // Detect plateau earlier
+    },
+  },
+});
+```
+
+### Injection Testing
+
+<ParamField path="enableDualMode" type="boolean" default="false">
+  Run both extraction and injection tests in parallel.
+</ParamField>
+
+<ParamField path="injectionTestTypes" type="InjectionTestType[]">
+  Specific injection test types to run. If not specified, all types are tested.
+</ParamField>
+
+#### InjectionTestType Options
+
+- `instruction_override`: Override existing instructions
+- `behavior_modification`: Modify system behavior
+- `policy_bypass`: Bypass safety policies
+- `role_hijack`: Hijack the system role
+- `output_manipulation`: Manipulate output format/content
+- `action_execution`: Execute unintended actions
+- `context_poisoning`: Poison conversation context
+- `guardrail_bypass`: Bypass guardrails
+
+Example:
+
+```typescript
+const result = await runSecurityScan(systemPrompt, {
+  scanMode: "injection",
+  injectionTestTypes: [
+    "instruction_override",
+    "behavior_modification",
+    "guardrail_bypass",
+  ],
+});
+```
+
+### Parallel Evaluation
+
+<ParamField path="enableParallelEvaluation" type="boolean" default="false">
+  Evaluate multiple attack variations in parallel for faster scanning.
+</ParamField>
+
+### Failure Analysis
+
+<ParamField path="enableFailureAnalysis" type="boolean" default="false">
+  Record and analyze failed attacks to learn patterns and improve future attempts.
+</ParamField>
+
+## Configuration Presets
+
+Common configuration patterns for different use cases:
+
+### Fast Testing (CI/CD)
+
+```typescript
+const result = await runSecurityScan(systemPrompt, {
+  maxTurns: 5,
+  maxDurationMs: 30000, // 30 seconds
+  attackerModel: "openai/gpt-4o-mini",
+  targetModel: "openai/gpt-4o-mini",
+  evaluatorModel: "openai/gpt-4o-mini",
+  enableInspector: false,
+  enableOrchestrator: false,
+});
+```
+
+### Thorough Security Audit
+
+```typescript
+const engine = createScanEngine({
+  scan: {
+    maxTurns: 30,
+    maxTreeDepth: 6,
+    branchingFactor: 5,
+    enableCrescendo: true,
+    enableManyShot: true,
+    enableBestOfN: true,
+    bestOfNCount: 5,
+    attackerModel: "anthropic/claude-opus-4.6",
+    targetModel: "anthropic/claude-sonnet-4.5",
+    evaluatorModel: "anthropic/claude-sonnet-4.5",
+    enableInspector: true,
+    enableDefenseFingerprinting: true,
+    enableMultiTurnOrchestrator: true,
+    enableAdaptiveTemperature: true,
+    enableDualMode: true,
+  },
+});
+```
+
+### Cost-Optimized
+
+```typescript
+const result = await runSecurityScan(systemPrompt, {
+  maxTurns: 10,
+  attackerModel: "openai/gpt-4o-mini",
+  targetModel: "openai/gpt-4o-mini",
+  evaluatorModel: "openai/gpt-4o-mini",
+  enableInspector: false,
+  enableOrchestrator: false,
+  enableDualMode: false,
+});
+```
+
+### Defense System Testing
+
+```typescript
+const engine = createScanEngine({
+  scan: {
+    maxTurns: 25,
+    attackerModel: "anthropic/claude-opus-4.6",
+    targetModel: "anthropic/claude-sonnet-4.5",
+    evaluatorModel: "anthropic/claude-sonnet-4.5",
+    enableInspector: true,
+    enableDefenseFingerprinting: true,
+    enableFailureAnalysis: true,
+    orchestratorPattern: "tombRaider",
+  },
+});
+```
+
+## Agent-Specific Configuration
+
+### Attacker Configuration
+
+```typescript
+interface AttackerConfig {
+  model?: string;
+  apiKey?: string;
+  maxBranchingFactor?: number;
+  maxTreeDepth?: number;
+  pruningThreshold?: number;
+}
+
+const engine = createScanEngine({
+  attacker: {
+    maxBranchingFactor: 4,
+    maxTreeDepth: 5,
+    pruningThreshold: 0.25,
+  },
+});
+```
+
+### Evaluator Configuration
+
+```typescript
+interface EvaluatorConfig {
+  model?: string;
+  apiKey?: string;
+}
+
+const engine = createScanEngine({
+  evaluator: {
+    model: "anthropic/claude-sonnet-4.5",
+  },
+});
+```
+
+### Target Configuration
+
+```typescript
+interface TargetConfig {
+  model?: string;
+  apiKey?: string;
+  temperature?: number;
+  maxTokens?: number;
+}
+
+const engine = createScanEngine({
+  target: {
+    temperature: 0.7,
+    maxTokens: 2000,
+  },
+});
+```
+
+## Environment Variables
+
+Configure ZeroLeaks via environment variables:
+
+```bash
+# Required
+export OPENROUTER_API_KEY=sk-or-v1-...
+
+# Optional: Set default models
+export ZEROLEAKS_ATTACKER_MODEL=anthropic/claude-opus-4.6
+export ZEROLEAKS_TARGET_MODEL=anthropic/claude-sonnet-4.5
+export ZEROLEAKS_EVALUATOR_MODEL=anthropic/claude-sonnet-4.5
+
+# Optional: Set default limits
+export ZEROLEAKS_MAX_TURNS=20
+export ZEROLEAKS_MAX_DURATION=300000
+```
+
+<Tip>
+Command-line flags and programmatic options override environment variables.
+</Tip>
+
+## Performance Tuning
+
+### Optimizing for Speed
+
+```typescript
+const engine = createScanEngine({
+  scan: {
+    maxTurns: 10,
+    branchingFactor: 2,        // Fewer alternatives
+    maxTreeDepth: 3,           // Shallower tree
+    pruningThreshold: 0.4,     // Aggressive pruning
+    enableBestOfN: false,      // Skip variation generation
+    enableParallelEvaluation: true,  // Parallel processing
+  },
+});
+```
+
+### Optimizing for Thoroughness
+
+```typescript
+const engine = createScanEngine({
+  scan: {
+    maxTurns: 30,
+    branchingFactor: 5,        // More alternatives
+    maxTreeDepth: 6,           // Deeper exploration
+    pruningThreshold: 0.2,     // Conservative pruning
+    enableBestOfN: true,
+    bestOfNCount: 5,           // More variations
+    enableFailureAnalysis: true,
+  },
+});
+```
+
+### Optimizing for Cost
+
+```typescript
+const result = await runSecurityScan(systemPrompt, {
+  maxTurns: 10,
+  maxTokensPerTurn: 2000,
+  maxTotalTokens: 50000,
+  attackerModel: "openai/gpt-4o-mini",     // Cheaper model
+  targetModel: "openai/gpt-4o-mini",
+  evaluatorModel: "openai/gpt-4o-mini",
+  enableInspector: false,                   // Disable extra agent
+  enableBestOfN: false,                     // Skip variations
+});
+```
+
+## Next Steps
+
+<Card title="Model Selection" icon="brain" href="/guides/model-selection">
+  Learn how to choose the right models for each agent
+</Card>
+
+<Card title="Interpreting Results" icon="chart-line" href="/guides/interpreting-results">
+  Understand scan results and vulnerability levels
+</Card>
+
+<Card title="CLI Usage" icon="terminal" href="/guides/cli-usage">
+  Use configuration options with the command-line interface
+</Card>
